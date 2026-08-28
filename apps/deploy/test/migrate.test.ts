@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { acquireLock, MIGRATION_LOCK_ID, releaseLock, resolveSchemaPath } from "../src/bin/migrate.js";
+import { readFileSync } from "node:fs";
 
 /**
  * The migration lock.
@@ -97,5 +98,39 @@ describe("resolveSchemaPath", () => {
     const path = resolveSchemaPath();
     expect(path).toMatch(/packages[/\\]db[/\\]prisma[/\\]schema\.prisma$/);
     expect(existsSync(path), `${path} does not exist`).toBe(true);
+  });
+});
+
+/**
+ * What EVERY install seeds.
+ *
+ * Measured on two stacks of the same build: the one whose operator had run the
+ * opt-in seed CLI held 21 parameters, the one installed straight from compose
+ * held ZERO — and the Parameters screen renders an empty table either way,
+ * saying nothing about which of the two it is. The kill switch, the data-class
+ * policy, the gate tiers and the Jira sweep interval all live in that table, so
+ * an install without it is not a platform with empty settings; it is a platform
+ * whose settings cannot be reached.
+ *
+ * The template and first-admin seeds are here for the same reason and carry the
+ * same comment. This pins the parameter seed beside them so a later edit cannot
+ * quietly move it back into the opt-in CLI.
+ */
+describe("migrate seeds what every deployment needs", () => {
+  const source = readFileSync(new URL("../src/bin/migrate.ts", import.meta.url), "utf8");
+
+  it("seeds the parameter set, not just the template and the first admin", () => {
+    expect(source).toContain("seedParams(db)");
+  });
+
+  it("seeds inside the advisory lock, like every other write here", () => {
+    const lock = source.indexOf("migration lock acquired");
+    const release = source.indexOf("releaseLock");
+    const seed = source.indexOf("seedParams(db)");
+
+    expect(lock).toBeGreaterThan(-1);
+    expect(seed).toBeGreaterThan(lock);
+    // N replicas start at once; seeding outside the lock would race.
+    expect(release === -1 || seed < release).toBe(true);
   });
 });

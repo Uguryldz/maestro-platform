@@ -10,6 +10,7 @@ import {
   seedAnalysisTemplate,
   seedDefaultVariants,
   seedFirstAdmin,
+  seedParams,
 } from "@maestro/db";
 import { BcryptPasswordHasher } from "@maestro/bff";
 import { loadDeployEnv } from "../env.js";
@@ -75,6 +76,32 @@ export async function main(): Promise<void> {
      * team saw. Seeding is skipped the moment a template exists, so a bank on
      * version 4 stays on version 4 (M83).
      */
+    /**
+     * Plant the M71 parameter set if this install has none.
+     *
+     * Here for exactly the reason the template seed gives below: this is the
+     * path EVERY deployment runs, and `seedParams` lived only in the OPT-IN
+     * seed CLI. Measured on two stacks of the same build: the one whose
+     * operator happened to run that CLI had 21 parameters, the one installed
+     * straight from compose had ZERO — and the Parameters screen renders an
+     * empty table either way, with nothing on it to say which of the two it
+     * is. Kill switch, data-class policy, gate tiers and the Jira sweep
+     * interval all live in that table, so an install without it is not a
+     * platform with empty settings; it is a platform whose settings cannot be
+     * reached.
+     *
+     * Idempotent and non-destructive: definitions are upserted (they are
+     * code-owned and gain options between releases) while version 1 is only
+     * ever CREATED, so an operator's edited value is never walked back.
+     */
+    const params = await seedParams(db);
+    console.info(
+      params.initialVersions === 0
+        ? `[maestro] ${String(params.definitions)} parameter definition(s) current, values left alone`
+        : `[maestro] ${String(params.initialVersions)} parameter default(s) seeded ` +
+          `(${String(params.definitions)} definitions)`,
+    );
+
     const template = await seedAnalysisTemplate(db);
     console.info(
       template.seeded

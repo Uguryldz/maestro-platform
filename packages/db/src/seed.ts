@@ -34,6 +34,8 @@ export async function seedParams(
 ): Promise<SeedParamsResult> {
   const changedBy = options.changedBy ?? SEED_ACTOR;
   const at = options.now ?? new Date();
+  /** Version-1 rows this run actually created. */
+  let planted = 0;
 
   for (const def of DEFAULT_PARAM_DEFINITIONS) {
     const defJson = {
@@ -59,6 +61,23 @@ export async function seedParams(
       },
     });
 
+    /**
+     * Counted, not assumed.
+     *
+     * `initialVersions` used to report the whole array every run, so a re-run
+     * that wrote NOTHING still logged "21 parameter default(s) seeded" — the
+     * same shape of lie the template seed avoids by saying "already published,
+     * leaving it alone". An operator reading it during an upgrade would think
+     * their edited values had just been overwritten.
+     */
+    const before = await db.paramVersion.findUnique({
+      where: {
+        key_scopeRef_version: { key: def.key, scopeRef: GLOBAL_SCOPE_REF, version: 1 },
+      },
+      select: { key: true },
+    });
+    if (before === null) planted += 1;
+
     await db.paramVersion.upsert({
       where: {
         key_scopeRef_version: { key: def.key, scopeRef: GLOBAL_SCOPE_REF, version: 1 },
@@ -77,6 +96,6 @@ export async function seedParams(
 
   return {
     definitions: DEFAULT_PARAM_DEFINITIONS.length,
-    initialVersions: DEFAULT_PARAM_DEFINITIONS.length,
+    initialVersions: planted,
   };
 }

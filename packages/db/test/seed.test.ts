@@ -19,6 +19,8 @@ interface UpsertCall {
 function fakeDb(): { db: SeedDb; params: UpsertCall[]; versions: UpsertCall[] } {
   const params: UpsertCall[] = [];
   const versions: UpsertCall[] = [];
+  /** Version-1 rows this fake already holds, keyed by the upsert's `where`. */
+  const stored = new Set<string>();
   const db = {
     param: {
       upsert: (args: UpsertCall) => {
@@ -27,8 +29,18 @@ function fakeDb(): { db: SeedDb; params: UpsertCall[]; versions: UpsertCall[] } 
       },
     },
     paramVersion: {
+      /**
+       * The seed asks what already exists before counting a row as planted,
+       * so the stand-in has to remember what it was given — a fake that always
+       * answers "absent" would make a re-run look like a first run.
+       */
+      findUnique: (args: { where: Record<string, unknown> }) => {
+        const key = JSON.stringify(args.where);
+        return Promise.resolve(stored.has(key) ? { key } : null);
+      },
       upsert: (args: UpsertCall) => {
         versions.push(args);
+        stored.add(JSON.stringify(args.where));
         return Promise.resolve(args.create);
       },
     },
@@ -252,5 +264,32 @@ describe("seedParams", () => {
     const { db, versions } = fakeDb();
     await seedParams(db, { now, changedBy: "ugur@corp" });
     expect(versions[0]?.create["changedBy"]).toBe("ugur@corp");
+  });
+});
+
+/**
+ * The seed must report what it DID, not what it looked at.
+ *
+ * `initialVersions` returned the whole definition array on every run, so a
+ * re-run that wrote nothing still logged "21 parameter default(s) seeded".
+ * During an upgrade that reads as "your edited values were just overwritten" —
+ * the opposite of what `update: {}` actually guarantees. The template seed says
+ * "already published, leaving it alone"; this makes the parameter seed as
+ * honest.
+ */
+describe("seedParams reports what it actually wrote", () => {
+  it("counts the version-1 rows it created, and reports zero on a re-run", async () => {
+    const { db } = fakeDb();
+
+    const first = await seedParams(db);
+    expect(first.initialVersions).toBe(first.definitions);
+    expect(first.initialVersions).toBeGreaterThan(0);
+
+    const second = await seedParams(db);
+    // Nothing new was written, so nothing is claimed.
+    expect(second.initialVersions).toBe(0);
+    // The definitions are still upserted every run: they are code-owned and
+    // gain enum options between releases.
+    expect(second.definitions).toBe(first.definitions);
   });
 });
