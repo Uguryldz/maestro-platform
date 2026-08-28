@@ -1,0 +1,36 @@
+# Maestro Pilot motoru — "hiç kapanmayan worker" (user-level systemd birimi).
+#
+# Kurulum: ops/systemd/kur.sh  (kopyalar + daemon-reload + enable; START ETMEZ)
+# Loglar:  journalctl --user -u maestro-pilot -f
+#
+# %h = kullanıcının ev dizini (user unit özelleştiricisi) — mutlak yollar
+# $HOME'a göre yazılır, makine adı/kullanıcı değişse de birim taşınabilir kalır.
+# Node/pnpm nvm altındadır; PATH satırındaki sürümü nvm sürümünüzle eşleyin.
+
+[Unit]
+Description=Maestro Pilot motoru (Jira kesif + analiz/kod akisi, port 7020)
+# Stack (BFF+Studio) önce ayağa kalksın diye sıralama; ama sıkı bağımlılık
+# DEĞİL (Requires yok) — pilot, stack olmadan da tek başına çalışabilir.
+After=network-online.target maestro-stack.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/coder/maestro
+# maestro/.env: Jira/OpenRouter kimlikleri + DATABASE_URL. Baştaki "-" dosya
+# yoksa boot'u kırmaz (pilot kendi fail-soft davranışıyla açılır/uyarır).
+EnvironmentFile=-%h/coder/maestro/.env
+# .env'de yoksa maestro-baslat.sh ile aynı varsayılan (EnvironmentFile bunu ezer).
+Environment=DATABASE_URL=postgresql://maestro:DEGISTIR-parola-uret-openssl-rand-hex-24@localhost:55432/maestro
+# pnpm/node nvm'den gelir — user unit'in PATH'i çıplaktır, elle verilir.
+Environment=PATH=%h/.nvm/versions/node/v24.15.0/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env pnpm -F @maestro/deploy exec tsx src/bin/pilot.ts
+# Hiç kapanmayan worker: hangi sebeple ölürse ölsün 5 sn sonra yeniden başlar.
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+# Boot'ta (kullanıcı oturumu/linger açıldığında) otomatik başlasın.
+WantedBy=default.target

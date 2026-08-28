@@ -1,0 +1,15 @@
+{
+  "value": [
+    {
+      "name": "refs/heads/main",
+      "objectId": "9c1e5a3b7d2f4068a1b3c5d7e9f0a2b4c6d8e0f1",
+      "creator": {
+        "displayName": "Maestro Service",
+        "id": "3b8c1f24-77a2-4f3d-9b60-5e1d2c9a4f77",
+        "uniqueName": "maestro-svc@ugurbank.local"
+      },
+      "url": "https://dev.azure.com/ugurbank/UgurPay/_apis/git/repositories/ugurpay/refs/heads/main"
+    }
+  ],
+  "count": 1
+}

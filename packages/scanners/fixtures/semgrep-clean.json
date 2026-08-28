@@ -1,0 +1,83 @@
+{
+ "version": "1.171.0",
+ "results": [],
+ "errors": [],
+ "paths": {
+  "scanned": [
+   "/workspace/app.js"
+  ]
+ },
+ "time": {
+  "rules": [],
+  "rules_parse_time": 0.014062881469726562,
+  "profiling_times": {
+   "config_time": 0.3003840446472168,
+   "core_time": 0.49341368675231934,
+   "ignores_time": 0.00012230873107910156,
+   "total_time": 0.8284657001495361
+  },
+  "parsing_time": {
+   "total_time": 0.0,
+   "per_file_time": {
+    "mean": 0.0,
+    "std_dev": 0.0
+   },
+   "very_slow_stats": {
+    "time_ratio": 0.0,
+    "count_ratio": 0.0
+   },
+   "very_slow_files": []
+  },
+  "scanning_time": {
+   "total_time": 0.001463174819946289,
+   "per_file_time": {
+    "mean": 0.001463174819946289,
+    "std_dev": 0.0
+   },
+   "very_slow_stats": {
+    "time_ratio": 0.0,
+    "count_ratio": 0.0
+   },
+   "very_slow_files": []
+  },
+  "matching_time": {
+   "total_time": 0.0,
+   "per_file_and_rule_time": {
+    "mean": 0.0,
+    "std_dev": 0.0
+   },
+   "very_slow_stats": {
+    "time_ratio": 0.0,
+    "count_ratio": 0.0
+   },
+   "very_slow_rules_on_files": []
+  },
+  "tainting_time": {
+   "total_time": 0.0,
+   "per_def_and_rule_time": {
+    "mean": 0.0,
+    "std_dev": 0.0
+   },
+   "very_slow_stats": {
+    "time_ratio": 0.0,
+    "count_ratio": 0.0
+   },
+   "very_slow_rules_on_defs": []
+  },
+  "fixpoint_timeouts": [],
+  "prefiltering": {
+   "project_level_time": 0.0,
+   "file_level_time": 0.0,
+   "rules_with_project_prefilters_ratio": 0.0,
+   "rules_with_file_prefilters_ratio": 1.0,
+   "rules_selected_ratio": 0.0,
+   "rules_matched_ratio": 0.0
+  },
+  "targets": [],
+  "total_bytes": 0,
+  "max_memory_bytes": 74731648
+ },
+ "engine_requested": "OSS",
+ "skipped_rules": [],
+ "profiling_results": []
+}

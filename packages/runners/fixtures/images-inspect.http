@@ -1,0 +1,15 @@
+HTTP/1.1 200 OK
+Api-Version: 1.54
+Content-Type: application/json
+Docker-Experimental: false
+Ostype: linux
+Server: Docker/29.4.1 (linux)
+Date: Sat, 08 Aug 2026 22:53:52 GMT
+Connection: close
+Transfer-Encoding: chunked
+
+80a
+{"Architecture":"amd64","Author":"","Comment":"buildkit.dockerfile.v0","Config":{"AttachStderr":false,"AttachStdin":false,"AttachStdout":false,"Cmd":["postgres"],"Domainname":"","Entrypoint":["docker-entrypoint.sh"],"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin","GOSU_VERSION=1.19","LANG=en_US.utf8","PG_MAJOR=16","PG_VERSION=16.14","PG_SHA256=f6d077142737920858ce958ccdb75c6ee137a63b5b0853c70693d401ac7e3471","DOCKER_PG_LLVM_DEPS=llvm21-dev \t\tclang21","PGDATA=/var/lib/postgresql/data"],"ExposedPorts":{"5432/tcp":{}},"Hostname":"","Image":"","Labels":null,"OnBuild":null,"OpenStdin":false,"StdinOnce":false,"StopSignal":"SIGINT","Tty":false,"User":"","Volumes":{"/var/lib/postgresql/data":{}},"WorkingDir":"/"},"Container":"","ContainerConfig":null,"Created":"2026-07-07T17:47:20.839800572Z","DockerVersion":"","GraphDriver":{"Data":null,"Name":"overlayfs"},"Id":"sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777","Metadata":{"LastTagTime":"2026-07-09T20:44:09.682108653Z"},"Os":"linux","Parent":"","RepoDigests":["postgres@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777"],"RepoTags":["postgres:16-alpine"],"RootFS":{"Layers":["sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c","sha256:b6c90c2b6a3cfed2b6d81db0a2f033ecac01c90688208cca5fd228a77042b0ea","sha256:7b46aee4dcb8bca869a7ee47e0e969fda37b222f4f95e450d146f7ff852c9e4d","sha256:8dab1ba202a0f291b324bd5cf4ae0079aca9384e2ee05f792c89de0fc4413335","sha256:ba9e432b616a5ca2593afd1106c703f158247b8c870dd75e54d91166f8773811","sha256:1ff314da4282ba54c76c566176f0d3711abbbd7ae30aec03dbdd98826bf7b572","sha256:e9e450d72705e875a4554c7b46afbb321ca95fb84085cf0a40ff277c5063aeb5","sha256:68928ffa1a8571d6557a64d5af00c07c472affce10e2731e131ac3db9a75c408","sha256:669aefeaf94735baa6d4986651565db5537f98ce817a4896baabdca49b0b0768","sha256:41604a050d67b54a297a0deeaea23299ed80965b4cd95d8c860f09a46d962841","sha256:05b9f8247eef1547e6f125f10fba9b76ef6a7388826f6f6ff6d476016ca87b77"],"Type":"layers"},"Size":116039394}
+
+0
+

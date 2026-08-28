@@ -1,0 +1,45 @@
+{
+  "expand": "transitions",
+  "transitions": [
+    {
+      "id": "11",
+      "name": "Devam Ediyor",
+      "to": {
+        "self": "https://uyildiz.atlassian.net/rest/api/3/status/10005",
+        "description": "",
+        "iconUrl": "https://uyildiz.atlassian.net/images/icons/statuses/generic.png",
+        "name": "Devam Ediyor",
+        "id": "10005",
+        "statusCategory": {
+          "self": "https://uyildiz.atlassian.net/rest/api/3/statuscategory/4",
+          "id": 4,
+          "key": "indeterminate",
+          "colorName": "yellow",
+          "name": "Devam Ediyor"
+        }
+      },
+      "isGlobal": false,
+      "isInitial": false,
+      "isConditional": false
+    },
+    {
+      "id": "31",
+      "name": "Tamam",
+      "to": {
+        "self": "https://uyildiz.atlassian.net/rest/api/3/status/10006",
+        "name": "Tamam",
+        "id": "10006",
+        "statusCategory": {
+          "self": "https://uyildiz.atlassian.net/rest/api/3/statuscategory/3",
+          "id": 3,
+          "key": "done",
+          "colorName": "green",
+          "name": "Tamam"
+        }
+      },
+      "isGlobal": true,
+      "isInitial": false,
+      "isConditional": false
+    }
+  ]
+}

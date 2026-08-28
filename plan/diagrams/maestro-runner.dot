@@ -1,0 +1,99 @@
+digraph MaestroV2Runner {
+  rankdir=TB;
+  bgcolor="white";
+  compound=true;
+  newrank=true;
+  splines=spline;
+  nodesep=0.45;
+  ranksep=0.7;
+  fontname="Helvetica";
+  node [fontname="Helvetica", fontsize=11, shape=box, style=filled,
+        fillcolor="white", color="#1E293B", penwidth=2, margin="0.28,0.18"];
+  edge [fontname="Helvetica", fontsize=10, color="#1E293B", penwidth=1.6];
+
+  labelloc="t";
+  label=<<FONT POINT-SIZE="22"><B>Runner Matrisi + Cache — 5 Uygulama, 3 Platform</B></FONT><BR/>
+        <FONT POINT-SIZE="12" COLOR="#64748B">ugurpay · ugurweb · ugurmobil (iOS + Android) · ugurmasaüstü — Agent SDK oturumu kodun derlendiği YERDE koşar</FONT><BR/>
+        <FONT POINT-SIZE="10" COLOR="#94A3B8">TASLAK · maestro/plan/masterplan.md §3.3-§3.4 · runner'lar platforma OUTBOUND bağlanır, içeri port açılmaz</FONT>>;
+
+  // Uygulama kataloğu
+  subgraph cluster_apps {
+    label="  UYGULAMA KATALOĞU  (.maestro.yaml → platform profili)  ";
+    style="filled,rounded"; fillcolor="#F1F5F9"; color="#94A3B8"; penwidth=2.2;
+    fontname="Helvetica-Bold"; fontsize=13; fontcolor="#334155";
+    node [fillcolor="#FFFFFF", color="#475569", fontsize=10];
+
+    a_pay  [label="ugurpay\nNext.js\nplatform: linux-node"];
+    a_web  [label="ugurweb\nReact\nplatform: linux-node"];
+    a_and  [label="ugurmobil\nAndroid · Gradle\nplatform: linux-android"];
+    a_ios  [label="ugurmobil\niOS · Xcode\nplatform: macos-xcode", color="#DC2626", penwidth=2.2];
+    a_net  [label="ugurmasaüstü\nC# / .NET\nplatform: windows-dotnet", color="#DC2626", penwidth=2.2];
+    a_pay -> a_web -> a_and -> a_ios -> a_net [style=invis];
+  }
+
+  // Maestro çekirdeği
+  runner_svc [label="RUNNER SERVİSİ\nplatform profili → doğru havuz\nhavuz başına ayrı semafor (kapasite)\niş kuyruğu · sonuç toplama",
+              fillcolor="#FDF4FF", color="#9333EA", penwidth=2.6, fontsize=12];
+
+  // Linux havuzu
+  subgraph cluster_linux {
+    label="  LINUX HAVUZU  —  ephemeral container  ";
+    style="filled,rounded"; fillcolor="#EFF6FF"; color="#3B82F6"; penwidth=2.2;
+    fontname="Helvetica-Bold"; fontsize=12; fontcolor="#1E40AF";
+    node [fillcolor="#FFFFFF", color="#2563EB", fontsize=10];
+
+    lx [label="docker-linux driver\nsertleştirilmiş container (iş başına)\nnode imajı: ugurpay · ugurweb\nAndroid SDK imajı: ugurmobil-android\n\nAGENT SDK OTURUMU içeride\nkod · lint/build · GERÇEK test", penwidth=2.2];
+  }
+
+  // macOS havuzu
+  subgraph cluster_mac {
+    label="  macOS HAVUZU  —  Mac mini (fiziksel, MDM'li)  ";
+    style="filled,rounded"; fillcolor="#FEF2F2"; color="#DC2626"; penwidth=2.2;
+    fontname="Helvetica-Bold"; fontsize=12; fontcolor="#991B1B";
+    node [fillcolor="#FFFFFF", color="#DC2626", fontsize=10];
+
+    mac [label="agent-macos driver\nMAESTRO RUNNER AGENT (daemon)\nplatforma OUTBOUND gRPC/WS bağlanır\n\niş başına ephemeral kullanıcı + workspace\nxcodebuild · simulator test\nAGENT SDK OTURUMU burada\niş sonu temizlik (audit'li)", penwidth=2.2];
+  }
+
+  // Windows havuzu
+  subgraph cluster_win {
+    label="  WINDOWS HAVUZU  —  Windows Server VM  ";
+    style="filled,rounded"; fillcolor="#F0FDFA"; color="#0F766E"; penwidth=2.2;
+    fontname="Helvetica-Bold"; fontsize=12; fontcolor="#115E59";
+    node [fillcolor="#FFFFFF", color="#0F766E", fontsize=10];
+
+    win [label="agent-windows driver\nMAESTRO RUNNER AGENT (aynı daemon)\nOUTBOUND bağlantı\n\niş başına ephemeral workspace\nMSBuild · dotnet · vstest\nAGENT SDK OTURUMU burada\n(v1'in 'Windows MCP köprüsü' fikrinin\ngenelleştirilmiş güvenli hali)", penwidth=2.2];
+  }
+
+  // Cache katmanları
+  subgraph cluster_cache {
+    label="  CACHE — 3 KATMAN  (v1'de yazılmış ama bağlanmamıştı; v2'de birinci sınıf)  ";
+    style="filled,rounded"; fillcolor="#FFFBEB"; color="#D97706"; penwidth=2.6;
+    fontname="Helvetica-Bold"; fontsize=13; fontcolor="#92400E";
+    node [fillcolor="#FFFFFF", color="#D97706", fontsize=10];
+
+    c1 [label="① BAĞIMLILIK CACHE\nnpm · Gradle · SwiftPM/Pods\n+ DerivedData · NuGet\nanahtar: repo + lockfile hash\nlockfile değişene kadar yaşar", penwidth=2];
+    c2 [label="② TİCKET ÇALIŞMA ALANI\nklon + branch + build çıktıları\n+ AGENT SDK SESSION DOSYALARI\nanahtar: ticket key\nticket açıkken yaşar (15-20 gün dahil)\nkapanış/cancel → silinir + audit\nrunner diskinde ŞİFRELİ", penwidth=2.6, color="#DC2626"];
+    c3 [label="③ BİLGİ / PROMPT CACHE\nknowledge pack (StoragePort)\nLLM prompt caching (gateway)\nanahtar: variant + knowledge hash", penwidth=2];
+    c1 -> c2 -> c3 [style=invis];
+  }
+
+  sonuc [label="SONUÇ: 15 gün sonra dönüşte\nyeni ephemeral ortam + katman ①② mount\n→ klon YOK · install YOK\n→ ajan önceki oturumunu RESUME eder",
+         fillcolor="#DCFCE7", color="#16A34A", penwidth=2.6, fontsize=11];
+
+  // Bağlantılar
+  a_and -> runner_svc [ltail=cluster_apps, penwidth=2.2, color="#475569", label="  RoutingRule:\l  Jira → repo → platform\l"];
+
+  runner_svc -> lx  [lhead=cluster_linux, penwidth=2.2, color="#2563EB", label="  linux-node ·\l  linux-android\l"];
+  runner_svc -> mac [lhead=cluster_mac, penwidth=2.2, color="#DC2626", label="  macos-xcode  ", style=dashed, dir=back];
+  runner_svc -> win [lhead=cluster_win, penwidth=2.2, color="#0F766E", label="  windows-dotnet  ", style=dashed, dir=back];
+
+  edge [style=solid];
+  lx  -> c2 [lhead=cluster_cache, penwidth=2, color="#D97706", label="  mount / senkron  "];
+  mac -> c2 [lhead=cluster_cache, penwidth=2, color="#D97706"];
+  win -> c2 [lhead=cluster_cache, penwidth=2, color="#D97706"];
+
+  c2 -> sonuc [ltail=cluster_cache, penwidth=2.2, color="#16A34A"];
+
+  { rank=same; lx; mac; win; }
+}

@@ -1,0 +1,493 @@
+/*
+ * Layout helpers shared by the flow screens, mirroring the mock's .grid/.kv/
+ * .issue/.bar. Colours come from tokens.css only — a literal here would break
+ * the dark theme silently, which is why src/ui/README.md forbids it.
+ */
+
+.screen-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.screen-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.screen-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.screen-grid--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Detail's main column + sidebar. */
+.screen-grid--detail {
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .screen-grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .screen-grid--detail,
+  .screen-grid--3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .screen-grid--2,
+  .screen-grid--4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.screen-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Mirrors .kv — a label column and a value column. */
+.screen-kv {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr);
+  gap: 7px 14px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.screen-kv dt {
+  color: var(--muted);
+}
+
+.screen-kv dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.screen-actions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.screen-note {
+  margin: 9px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.screen-mono {
+  font-family: var(--mono);
+}
+
+/* Mirrors .issue — an attention row that is also a link target. */
+.screen-issue {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: start;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.screen-issue:hover {
+  border-color: var(--blue);
+}
+
+.screen-issue--alert {
+  border-color: var(--red);
+}
+
+.screen-issue__body {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Mirrors .bar — a capacity/progress meter. */
+.screen-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.screen-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+}
+
+.screen-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Mirrors .chip — the filter pills above a list. */
+.screen-chip {
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.screen-chip[aria-pressed="true"] {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+/* Mirrors .jira — a comment card in the Jira transcript views. */
+.screen-comment {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px;
+  margin-bottom: 10px;
+  background: var(--panel);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.screen-comment__who {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.screen-comment__when {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Mirrors .flowbox — the horizontal step ribbon. */
+.screen-flow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.screen-flow__item {
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.screen-flow__item--on {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+/* Mirrors .steps — the vertical step list on the detail screen. */
+.screen-steps {
+  display: flex;
+  flex-direction: column;
+}
+
+.screen-step {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--border);
+  /* Satır bir <button> olarak da render ediliyor (tıklanabilir iş kaydı);
+     tarayıcının varsayılan kenarlık/zeminini sıfırla, yoksa her satır
+     kalın çerçeveli bir kutu gibi görünüyor. */
+  border-top: none;
+  border-inline: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+
+.screen-step:last-child {
+  border-bottom: none;
+}
+
+/* Numarasız satırlar (ör. Panel'deki canlı motor işleri) yalnızca başlık +
+   durum içerir. Üç sütunlu şablonda başlık, numara için ayrılmış 46px'lik
+   sütuna düşüp kırılıyordu; bu varyant o sütunu kaldırır. */
+.screen-step:not(:has(.screen-step__num)) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.screen-step__num {
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: center;
+  padding: 3px 0;
+  border-radius: 6px;
+  background: var(--border);
+  color: var(--muted);
+}
+
+.screen-step--now .screen-step__num {
+  background: var(--blue);
+  color: var(--panel);
+}
+
+.screen-step--done .screen-step__num {
+  color: var(--green);
+}
+
+.screen-step__title {
+  font-size: 13.5px;
+}
+
+.screen-step__state {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: end;
+}
+
+/* Journal rows. */
+.screen-journal {
+  display: flex;
+  flex-direction: column;
+}
+
+.screen-journal__row {
+  display: grid;
+  grid-template-columns: 132px 26px minmax(0, 1fr);
+  gap: 11px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--border);
+  align-items: start;
+  font-size: 13px;
+}
+
+.screen-journal__row:last-child {
+  border-bottom: none;
+}
+
+.screen-file {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.screen-file:last-child {
+  border-bottom: none;
+}
+
+.screen-file__name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+/* Collapsible "advanced / how it works" section — keeps reference and
+   infrastructure detail off the operator's default view without deleting it.
+   No horizontal padding on the container: its child cards must line up with the
+   cards ABOVE it (same left edge, same width). Only the summary is padded, so
+   the header reads as a clickable strip while the content stays aligned. */
+.scr-adv {
+  background: transparent;
+}
+.scr-adv > .scr-adv__summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--muted);
+  list-style: none;
+  user-select: none;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.scr-adv[open] > .scr-adv__summary {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.scr-adv > .scr-adv__summary::-webkit-details-marker {
+  display: none;
+}
+.scr-adv > .scr-adv__summary::before {
+  content: "▸ ";
+  color: var(--muted);
+}
+.scr-adv[open] > .scr-adv__summary::before {
+  content: "▾ ";
+}
+
+/* Project-binding journey strip — three numbered, clickable steps with arrows,
+   so a first-time admin sees the sequence and where they are. Colours come from
+   tokens (never literals) so both themes stay correct. */
+.proj-journey {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.proj-journey__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+.proj-journey__step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  text-align: start;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  cursor: pointer;
+  color: inherit;
+  transition: border-color 0.12s, background 0.12s;
+}
+.proj-journey__step:hover {
+  border-color: var(--blue);
+}
+.proj-journey__step--on {
+  border-color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 10%, var(--panel));
+}
+.proj-journey__num {
+  flex: 0 0 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 13px;
+}
+.proj-journey__step--on .proj-journey__num {
+  background: var(--blue);
+  color: #fff;
+}
+.proj-journey__step--done .proj-journey__num {
+  background: var(--green);
+  color: #fff;
+}
+.proj-journey__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.proj-journey__label {
+  font-weight: 600;
+  font-size: 13px;
+}
+.proj-journey__hint {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.proj-journey__arrow {
+  color: var(--muted);
+  font-size: 15px;
+  flex: 0 0 auto;
+}
+
+/* First-run "where do I start" checklist on the Panel. Numbered, clickable
+   steps; the next unfinished step is highlighted. Tokens only (dark-safe). */
+.dash-start { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.dash-start__step {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: start;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: 9px;
+  background: var(--panel); cursor: pointer; color: inherit;
+  transition: border-color .12s, background .12s;
+}
+.dash-start__step:hover { border-color: var(--blue); }
+.dash-start__step--next { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 8%, var(--panel)); }
+.dash-start__mark {
+  flex: 0 0 28px; height: 28px; display: grid; place-items: center; border-radius: 50%;
+  background: var(--border); color: var(--muted); font-weight: 700; font-size: 14px;
+}
+.dash-start__step--done .dash-start__mark { background: var(--green); color: #fff; }
+.dash-start__step--next .dash-start__mark { background: var(--blue); color: #fff; }
+.dash-start__body { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.dash-start__label { font-weight: 600; font-size: 14px; }
+.dash-start__hint { font-size: 12.5px; color: var(--muted); }
+.dash-start__cta {
+  flex: 0 0 auto; font-size: 12px; font-weight: 700; color: #fff; background: var(--blue);
+  padding: 4px 11px; border-radius: 999px;
+}
+
+/* The guide's footer: the webhook acknowledgement on the left, "hide" on the
+   right. Wraps on a narrow screen rather than squeezing the label. */
+.dash-start__foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; margin-top: 12px;
+}
+.dash-start__ack {
+  display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted);
+  cursor: pointer;
+}
+
+/* Shown when the guide is hidden but the setup is still open — the reminder
+   that "gizle" did not mean "tamamlandı". */
+.dash-setup-note {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; padding: 10px 14px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--panel); font-size: 13px; color: var(--muted);
+}
+
+/* Section heading inside the Panel (e.g. "Tüm iş akışları" above the full list). */
+.dash-section { font-size: 15px; font-weight: 700; margin: 6px 2px 10px; color: var(--ink, inherit); }
+
+/* A bare button that wraps a Badge to make a status cell clickable — no button
+   chrome, just a pointer, so the badge reads as a link to the fix-it step. */
+.scr-linkbtn { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
+
+/* Help page guide: the three "what/how/example" blocks per page. */
+.help-guide { display: grid; gap: 12px; }
+.help-guide__h {
+  margin: 0 0 3px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--muted, #6b7280);
+}
+.help-guide__block--example {
+  padding: 10px 12px; border-radius: 8px;
+  background: color-mix(in srgb, var(--blue, #2563eb) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--blue, #2563eb) 18%, transparent);
+}
+
+/* Help "fields & steps" list: one field per line, bold name + description. */
+.help-fields { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
+.help-fields li { line-height: 1.5; }
+
+/* A sub-heading that groups fields inside the single onboarding form (replaces
+   what used to be a separate wizard step). */
+.onb-group {
+  margin: 20px 0 10px; padding-top: 14px; border-top: 1px solid var(--border);
+  font-size: 13px; font-weight: 700; letter-spacing: 0.02em; color: var(--ink, inherit);
+}

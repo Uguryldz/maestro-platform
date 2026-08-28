@@ -1,0 +1,11 @@
+HTTP/1.1 200 OK
+Api-Version: 1.54
+Content-Type: application/json
+Docker-Experimental: false
+Ostype: linux
+Server: Docker/29.4.1 (linux)
+Date: Sat, 08 Aug 2026 23:52:01 GMT
+Content-Length: 453
+Connection: close
+
+{"Name":"maestro-egress","Id":"06d80e5fa4729af1f6696f579bf480c6f7c5b96259f6fe0502c67e867c12d603","Created":"2026-08-08T23:52:01.506273195Z","Scope":"local","Driver":"bridge","EnableIPv4":true,"EnableIPv6":false,"IPAM":{"Driver":"default","Options":{},"Config":[{"Subnet":"172.26.0.0/16","Gateway":"172.26.0.1"}]},"Internal":true,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Options":{},"Labels":{},"Containers":{}}

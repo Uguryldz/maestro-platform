@@ -1,0 +1,75 @@
+digraph MaestroV2Llm {
+  rankdir=TB;
+  bgcolor="white";
+  compound=true;
+  newrank=true;
+  splines=spline;
+  nodesep=0.5;
+  ranksep=0.7;
+  fontname="Helvetica";
+  node [fontname="Helvetica", fontsize=12, shape=box, style=filled,
+        fillcolor="white", color="#1E293B", penwidth=2, margin="0.3,0.2"];
+  edge [fontname="Helvetica", fontsize=11, color="#1E293B", penwidth=1.6];
+
+  labelloc="t";
+  label=<<FONT POINT-SIZE="22"><B>Hibrit LLM Erişimi — LLM Gateway (LlmPort)</B></FONT><BR/>
+        <FONT POINT-SIZE="12" COLOR="#64748B">hangi çağrı nereye gider: POLİTİKA karar verir (rol + veri sınıfı) · kod değil konfigürasyon</FONT><BR/>
+        <FONT POINT-SIZE="10" COLOR="#94A3B8">TASLAK · maestro/plan/masterplan.md §5</FONT>>;
+
+  // Çağrı kaynakları
+  worker  [label="WORKER\ndüşünen ajanlar\nintake · analyst · reviewer'lar", fillcolor="#DBEAFE", color="#2563EB", penwidth=2.4];
+  sandbox [label="SANDBOX\nAgent SDK oturumları\nengineer · test-engineer", fillcolor="#F3E8FF", color="#9333EA", penwidth=2.4];
+
+  // Gateway
+  subgraph cluster_gw {
+    label="  LLM GATEWAY  —  tüm model trafiği TEK noktadan  ";
+    style="filled,rounded"; fillcolor="#FFFBEB"; color="#D97706"; penwidth=2.6;
+    fontname="Helvetica-Bold"; fontsize=14; fontcolor="#92400E";
+    node [fillcolor="#FFFFFF", color="#D97706", fontsize=11];
+
+    pii [label="① PII MASKELEME\nalan + regex · reverse-map\n(cloud'a giden her şeyde ZORUNLU)", color="#DC2626", penwidth=2.2];
+
+    policy [label="② YÖNLENDİRME POLİTİKASI  (yaml konfig)\n\nveri sınıfı 'gizli'  →  on-prem\nrol = intake (ucuz iş)  →  küçük model\nvarsayılan  →  cloud Claude\ncloud erişilemez  →  on-prem fallback (uyarılı)", penwidth=2.6];
+
+    guard [label="③ KORUMALAR\natomik rate limit (RPM/TPM)\nbütçe: workflow + aylık — TEK doğruluk kaynağı\nfiyat tablosu konfigde · bilinmeyen model = HATA", penwidth=2.2];
+
+    logx [label="④ KAYIT\nçağrı logu (maskeli) · token · maliyet\nprompt cache yönetimi\nStepExecution + audit", penwidth=2];
+
+    pii -> policy -> guard -> logx [penwidth=2, color="#D97706"];
+  }
+
+  // Arka uçlar
+  subgraph cluster_cloud {
+    label="  CLOUD YOLU  —  kurum dışı, kontrollü  ";
+    style="filled,rounded"; fillcolor="#FEF2F2"; color="#DC2626"; penwidth=2.2;
+    fontname="Helvetica-Bold"; fontsize=13; fontcolor="#991B1B";
+    node [fillcolor="#FFFFFF", color="#DC2626", fontsize=11];
+
+    proxy [label="EGRESS PROXY\nallow-list · loglu\nkurum dışına TEK çıkış", penwidth=2.4];
+    claude [label="CLAUDE\nAnthropic API / AWS Bedrock / GCP Vertex\n(kurum sözleşmesine göre — açık soru)\nZDR / veri işleme sözleşmesi ön şart\n\ndüşünen roller: structured output\nyapan roller: Agent SDK modelleri", penwidth=2.4];
+    proxy -> claude [penwidth=2, color="#DC2626"];
+  }
+
+  subgraph cluster_onprem {
+    label="  ON-PREM YOLU  —  kurum dışına çıkış YOK  ";
+    style="filled,rounded"; fillcolor="#F0FDF4"; color="#16A34A"; penwidth=2.2;
+    fontname="Helvetica-Bold"; fontsize=13; fontcolor="#15803D";
+    node [fillcolor="#FFFFFF", color="#16A34A", fontsize=11];
+
+    vllm [label="vLLM SUNUCUSU  (GPU)\nOpenAI-uyumlu API\naçık kodlama modeli — PoC ile seçilir\n(Qwen-Coder / DeepSeek sınıfı)", penwidth=2.4];
+    uyari [label="⚠ KISIT\nAgent SDK oturumları Claude gerektirir\n'gizli' sınıf + yapan rol için MVP kararı:\nai-assist moduna düş (AI önerir, insan uygular)\n→ uyum ekibiyle netleşecek", fillcolor="#FEF3C7", color="#D97706", fontsize=10, penwidth=2];
+    vllm -> uyari [style=invis];
+  }
+
+  // Bağlantılar
+  worker  -> pii [lhead=cluster_gw, penwidth=2.2, color="#2563EB", label="  JSON çağrı  "];
+  sandbox -> pii [lhead=cluster_gw, penwidth=2.2, color="#9333EA", label="  Agent SDK trafiği  "];
+
+  logx -> proxy [ltail=cluster_gw, lhead=cluster_cloud, penwidth=2.4, color="#DC2626",
+                 label="  cloud sınıfı çağrılar\l  (maskeli)\l", fontcolor="#B91C1C"];
+  logx -> vllm  [ltail=cluster_gw, lhead=cluster_onprem, penwidth=2.4, color="#16A34A",
+                 label="  'gizli' veri sınıfı\l  + fallback\l", fontcolor="#15803D"];
+
+  { rank=same; worker; sandbox; }
+  { rank=same; proxy; vllm; }
+}

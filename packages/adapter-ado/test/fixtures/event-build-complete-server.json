@@ -1,0 +1,54 @@
+{
+  "subscriptionId": "2d3e4f50-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+  "notificationId": 4,
+  "id": "c4d5e6f7-a8b9-4c0d-9e1f-2a3b4c5d6e7f",
+  "eventType": "build.complete",
+  "publisherId": "tfs",
+  "message": { "text": "Build 20260808.1 failed" },
+  "resource": {
+    "_links": {
+      "web": {
+        "href": "https://tfs.ugurbank.local/tfs/DefaultCollection/UgurWeb/_build/results?buildId=20261"
+      }
+    },
+    "id": 20261,
+    "buildNumber": "20260808.1",
+    "status": "completed",
+    "result": "failed",
+    "queueTime": "2026-08-08T07:41:12.0300000Z",
+    "startTime": "2026-08-08T07:41:20.5500000Z",
+    "finishTime": "2026-08-08T07:49:05.8800000Z",
+    "url": "https://tfs.ugurbank.local/tfs/DefaultCollection/UgurWeb/_apis/build/Builds/20261",
+    "definition": {
+      "id": 33,
+      "name": "ugurweb-pr-validation",
+      "path": "\\policies",
+      "type": "build"
+    },
+    "project": {
+      "id": "8e7d6c5b-4a39-4281-9170-6f5e4d3c2b1a",
+      "name": "UgurWeb",
+      "state": "wellFormed"
+    },
+    "reason": "pullRequest",
+    "sourceBranch": "refs/pull/77/merge",
+    "sourceVersion": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d",
+    "triggerInfo": {
+      "pr.number": "77",
+      "pr.sourceBranch": "refs/heads/feature/UGURWEB-902-session-timeout",
+      "pr.sourceSha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d",
+      "pr.targetBranch": "refs/heads/main"
+    },
+    "repository": {
+      "id": "b2c3d4e5-f607-4819-a2b3-c4d5e6f70819",
+      "type": "TfsGit",
+      "name": "ugurweb"
+    }
+  },
+  "resourceVersion": "2.0",
+  "resourceContainers": {
+    "collection": { "id": "6b7c8d9e-0f1a-4b2c-8d3e-4f5a6b7c8d9e" },
+    "project": { "id": "8e7d6c5b-4a39-4281-9170-6f5e4d3c2b1a" }
+  },
+  "createdDate": "2026-08-08T07:49:07.4400000Z"
+}

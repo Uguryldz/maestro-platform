@@ -1,0 +1,30 @@
+{
+  "name": "@maestro/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "postinstall": "prisma generate --schema prisma/schema.prisma",
+    "generate": "prisma generate --schema prisma/schema.prisma",
+    "migration:build": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script --output prisma/migrations/0001_init/migration.sql",
+    "seed": "tsx src/seed-cli.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@maestro/audit": "workspace:*",
+    "@maestro/contracts": "workspace:*",
+    "@prisma/client": "^6.5.0",
+    "tsx": "^4.23.11"
+  },
+  "devDependencies": {
+    "@maestro/notify": "workspace:*",
+    "@types/node": "^24.0.0",
+    "prisma": "^6.5.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.0"
+  }
+}

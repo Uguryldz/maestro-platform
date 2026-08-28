@@ -1,0 +1,27 @@
+{
+  "name": "@maestro/mcp-servers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@maestro/audit": "workspace:*",
+    "@maestro/contracts": "workspace:*",
+    "@maestro/execution": "workspace:*",
+    "@maestro/pii": "workspace:*",
+    "@maestro/ports": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.0"
+  }
+}

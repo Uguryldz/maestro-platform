@@ -1,0 +1,44 @@
+{
+  // What `pnpm build` compiles with, as opposed to what `pnpm typecheck` checks
+  // with (`tsconfig.base.json`, which is `noEmit` and never writes a file).
+  //
+  // The two exist separately because they answer different questions. Typecheck
+  // reads `src/` AND `test/` and proves the whole workspace is consistent;
+  // the build reads `src/` only and produces the thing that ships. Folding them
+  // together would put the test suite in the image — the opposite of the point.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": false,
+
+    // `NodeNext`, not the `bundler` the typecheck config uses.
+    //
+    // `bundler` resolution lets an import omit its extension because a bundler
+    // would have fixed it up; nothing fixes it up here, because the output is
+    // run by Node directly. `NodeNext` holds imports to the extension Node
+    // actually requires at runtime, so a specifier that would fail in the
+    // container fails the build instead. The codebase already writes
+    // `./foo.js` in ~2965 of its 2967 relative imports, so this is enforcing a
+    // rule it already follows rather than imposing a new one.
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
+    // Declarations, because packages import each other's types across the
+    // workspace: with `exports` pointed at `dist/`, `@maestro/contracts` is a
+    // `.d.ts` to everyone downstream, not a `.ts`.
+    "declaration": true,
+
+    // Source maps so a stack trace from the container names a line in `src/`.
+    // Without them a production stack trace points into compiled output and
+    // every incident starts by guessing which source line that was. The `.ts`
+    // itself does NOT ship (that is the whole point of compiling), so the map
+    // resolves to a path that is absent in the image — the file name and line
+    // number are still what the on-call engineer needs to grep for.
+    "sourceMap": true
+  },
+  // `outDir`/`rootDir` are NOT set here. A path in an extended config resolves
+  // relative to the file that WROTE it, so "dist" here would mean the
+  // workspace root's `dist` for all 26 packages, and tsc rejects that with
+  // TS6059 ("not under rootDir"). Each package's own tsconfig.build.json sets
+  // them, where "dist" means what it looks like it means.
+  "exclude": ["dist", "node_modules", "test"]
+}

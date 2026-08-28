@@ -1,0 +1,39 @@
+{
+  "timestamp": 1786183953000,
+  "webhookEvent": "comment_created",
+  "comment": {
+    "self": "https://jira.internal.bank/rest/api/2/issue/10501/comment/45201",
+    "id": "45201",
+    "author": {
+      "self": "https://jira.internal.bank/rest/api/2/user?username=mert.demir",
+      "name": "mert.demir",
+      "key": "JIRAUSER10321",
+      "emailAddress": "mert.demir@bank.example",
+      "displayName": "Mert Demir",
+      "active": true,
+      "timeZone": "Europe/Istanbul"
+    },
+    "body": "/approve",
+    "updateAuthor": {
+      "self": "https://jira.internal.bank/rest/api/2/user?username=mert.demir",
+      "name": "mert.demir",
+      "key": "JIRAUSER10321",
+      "displayName": "Mert Demir",
+      "active": true
+    },
+    "created": "2026-08-08T13:12:33.000+0300",
+    "updated": "2026-08-08T13:12:33.000+0300"
+  },
+  "issue": {
+    "id": "10501",
+    "self": "https://jira.internal.bank/rest/api/2/issue/10501",
+    "key": "UGURPAY-501",
+    "fields": {
+      "summary": "Şifre sıfırlama akışına e-posta doğrulama adımı eklensin",
+      "issuetype": { "id": "10001", "name": "Story", "subtask": false },
+      "project": { "id": "10100", "key": "UGURPAY", "name": "Ugur Payments" },
+      "labels": ["maestro", "guvenlik"],
+      "status": { "id": "3", "name": "In Progress" }
+    }
+  }
+}

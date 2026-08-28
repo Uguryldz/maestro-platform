@@ -1,0 +1,11 @@
+HTTP/1.1 201 Created
+Api-Version: 1.54
+Content-Type: application/json
+Docker-Experimental: false
+Ostype: linux
+Server: Docker/29.4.1 (linux)
+Date: Sat, 08 Aug 2026 22:53:53 GMT
+Content-Length: 219
+Connection: close
+
+{"CreatedAt":"2026-08-08T22:53:53Z","Driver":"local","Labels":{"maestro.layer":"dependency"},"Mountpoint":"/var/lib/docker/volumes/maestro-fixture-vol/_data","Name":"maestro-fixture-vol","Options":null,"Scope":"local"}

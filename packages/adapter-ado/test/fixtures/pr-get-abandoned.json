@@ -1,0 +1,17 @@
+{
+  "repository": {
+    "id": "5f8c3a1e-9b2d-4c7a-8e11-2b6d4f0a9c33",
+    "name": "ugurpay",
+    "project": { "id": "1c9f2b77-3d64-45e0-9a2b-7f4c6d81ea05", "name": "UgurPay" }
+  },
+  "pullRequestId": 129,
+  "status": "abandoned",
+  "creationDate": "2026-08-07T15:10:02.004Z",
+  "closedDate": "2026-08-07T17:44:19.660Z",
+  "title": "[AI] UGURPAY-4288 retry policy",
+  "sourceRefName": "refs/heads/feature/UGURPAY-4288-retry-policy",
+  "targetRefName": "refs/heads/main",
+  "mergeStatus": "notSet",
+  "isDraft": false,
+  "url": "https://dev.azure.com/ugurbank/UgurPay/_apis/git/repositories/ugurpay/pullRequests/129"
+}

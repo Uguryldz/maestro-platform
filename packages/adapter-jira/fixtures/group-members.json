@@ -1,0 +1,36 @@
+{
+  "self": "https://jira.internal.bank/rest/api/2/group/member?includeInactiveUsers=false&maxResults=50&groupname=tech-leads&startAt=0",
+  "maxResults": 50,
+  "startAt": 0,
+  "total": 3,
+  "isLast": true,
+  "values": [
+    {
+      "self": "https://jira.internal.bank/rest/api/2/user?username=mert.demir",
+      "name": "mert.demir",
+      "key": "JIRAUSER10321",
+      "emailAddress": "mert.demir@bank.example",
+      "displayName": "Mert Demir",
+      "active": true,
+      "timeZone": "Europe/Istanbul"
+    },
+    {
+      "self": "https://jira.internal.bank/rest/api/2/user?username=selin.arslan",
+      "name": "selin.arslan",
+      "key": "JIRAUSER10344",
+      "emailAddress": "selin.arslan@bank.example",
+      "displayName": "Selin Arslan",
+      "active": true,
+      "timeZone": "Europe/Istanbul"
+    },
+    {
+      "self": "https://jira.internal.bank/rest/api/2/user?username=can.ozturk",
+      "name": "can.ozturk",
+      "key": "JIRAUSER10399",
+      "emailAddress": "can.ozturk@bank.example",
+      "displayName": "Can Öztürk",
+      "active": true,
+      "timeZone": "Europe/Istanbul"
+    }
+  ]
+}

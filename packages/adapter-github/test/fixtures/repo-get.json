@@ -1,0 +1,10 @@
+{
+  "id": 4210012,
+  "node_id": "R_kgDOAABCDE",
+  "name": "ugurpay",
+  "full_name": "ugurbank/ugurpay",
+  "private": true,
+  "owner": { "login": "ugurbank", "id": 900001, "type": "Organization" },
+  "html_url": "https://github.com/ugurbank/ugurpay",
+  "default_branch": "main"
+}

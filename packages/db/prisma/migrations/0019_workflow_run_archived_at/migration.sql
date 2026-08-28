@@ -1,0 +1,59 @@
+-- HAND-WRITTEN MIGRATION.
+--
+-- Arşivleme: a run may OPTIONALLY be marked as no longer worth an operator's
+-- attention, without the record leaving the database. This is the column that
+-- distinguishes "I have seen this and dealt with it" from "this never
+-- happened" — and the second sentence is one a bank may not say. The audit
+-- trail stands; only the dashboard's default view changes.
+--
+-- WHY IT EXISTS. Twelve `fail` rows from an evening of experiments sat on the
+-- board for a day, every one of them stopped at the same step ("3o Repo keşfi
+-- (salt-okunur)"), nineteen to twenty-two hours old. A new operator opening
+-- the panel read "hatalı: 12" and concluded the product was broken. The rows
+-- were real history and DELETE was never on the table (M33: the chain is
+-- append-only and a WorkflowRun a journal and an evidence package point at is
+-- not a row anyone gets to remove). So the fix is a column that says "retired
+-- from the default view", not a DELETE that says "gone".
+--
+-- NULLable, and NULL is the meaning-bearing default: not archived = on the
+-- board = exactly today's behaviour. That is what makes this migration purely
+-- additive against the live table — every existing row keeps its place with no
+-- backfill, and no DEFAULT rewrites a table the pilot is reading. A non-null
+-- timestamp retires that ONE run.
+--
+-- A TIMESTAMP rather than a boolean, deliberately. "Archived" is an operator
+-- ACTION on a record, and the question asked of it later is "when was this
+-- taken off the board, and by whom" — the audit chain answers the second
+-- (`PARAM_CHANGED`, subject `run:<ticket>`, appended by the BFF route that
+-- writes here), and this column answers the first. A boolean would throw the
+-- clock away and leave the chain as the only place the moment survives, which
+-- makes a perfectly ordinary listing question into an evidence-package query.
+--
+-- REVERSIBLE BY DESIGN, at two levels. In the schema, the down direction is
+-- `ALTER TABLE "WorkflowRun" DROP COLUMN "archivedAt";` — one added nullable
+-- column, nothing rewritten, no NOT NULL added to a populated table, so
+-- Postgres records this as a catalog-only change with no table rewrite and no
+-- existing-data hazard. In the PRODUCT, un-archiving is `archivedAt = NULL`,
+-- which is why the column is nullable rather than a `WorkflowRunArchive` row
+-- an operator could only ever add to. An operator who archives the wrong run
+-- must be able to put it back without a DBA, or they will hesitate to archive
+-- anything and the board stays unusable.
+--
+-- NO INDEX, deliberately. The read path filters `archivedAt IS NULL` inside a
+-- query that is ALREADY scoped by project key and ordered by `updatedAt`
+-- (`PrismaRunCatalog.list`, apps/deploy/src/stores/read-runs.ts), against a
+-- catalog holding tens of rows on this deployment and thousands at its
+-- projected ceiling. A partial index here would be a second thing to keep
+-- true for no measured gain; the moment the catalog is big enough for it to
+-- matter, `WorkflowRun_updatedAt_idx` is the index that needs the predicate,
+-- not a new one beside it.
+--
+-- `IF NOT EXISTS` is deliberate: migrations 0008-0016 were half-applied on
+-- this deployment historically, so a migration here must be safe to re-apply
+-- against a database that already has the column. Re-applying is a no-op
+-- rather than a failed migration that blocks every later one.
+
+ALTER TABLE "WorkflowRun" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMPTZ(3);
+
+COMMENT ON COLUMN "WorkflowRun"."archivedAt" IS
+  'When an operator retired this run from the dashboard''s default view. NULL = active, the pre-0019 behaviour of every row. The record itself is never deleted; archiving hides it from a listing, not from the audit trail.';

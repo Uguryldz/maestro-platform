@@ -1,0 +1,997 @@
+// Maestro core schema (Wave 1, `db` packet).
+//
+// Conventions — rationale in packages/db/RAPOR.md:
+//  · Enum values mirror @maestro/contracts 1:1. A Prisma enum is only used
+//    where every contract option is also a legal Prisma identifier, so the
+//    generated TypeScript union equals the contract union (no @map aliases,
+//    no translation layer for callers).
+//  · Every DateTime is timestamptz(3): the platform is audit-grade and the
+//    contracts carry offset-aware ISO strings (M33/M56).
+//  · Relations are onDelete: Restrict — runs, journals, audit rows and
+//    evidence are retained, never cascaded away (M30/M56). Key updates
+//    cascade, since an id rename is a rename, not a deletion.
+//  · Money is Decimal, never Float (M55 cost accounting).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums — mirrors of @maestro/contracts (verified by test/schema-enums.test.ts)
+// ---------------------------------------------------------------------------
+
+/// WorkflowRunStatus
+enum RunStatus {
+  running
+  gate
+  queued
+  fail
+  handover
+  done
+  cancelled
+}
+
+/// WorkMode (M46)
+enum WorkModeE {
+  full_auto
+  ai_assist
+  human_lead
+  human_only
+}
+
+/// RiskTier (M51)
+enum RiskTierE {
+  dusuk
+  orta
+  kritik
+}
+
+/// DataClass (M18)
+enum DataClassE {
+  acik
+  dahili
+  gizli
+}
+
+/// BindingState (M102)
+enum BindingStateE {
+  draft
+  dry_run
+  active
+  paused
+  unbound
+}
+
+/// TriggerMode (M48a/M102)
+enum TriggerModeE {
+  auto
+  label
+  command
+}
+
+/// ParamScope (M71)
+enum ParamScopeE {
+  global
+  project
+  application
+}
+
+/// ParamType (M71)
+enum ParamTypeE {
+  string
+  number
+  boolean
+  enum
+  json
+}
+
+/// JournalActor (M30)
+enum JournalActorE {
+  ai
+  human
+  system
+}
+
+/// JournalKind (M30)
+enum JournalKindE {
+  intake
+  clarification
+  discovery
+  analysis
+  gate
+  engineering
+  scan
+  review
+  test_design
+  test_review
+  test_run
+  ci
+  pr
+  handover
+  pii
+  quota
+  closure
+  other
+}
+
+/// AuditAction (M33)
+enum AuditActionE {
+  RUN_STARTED
+  GATE_OPEN
+  GATE_APPROVE
+  GATE_REJECT
+  CLARIFICATION_ASKED
+  CLARIFICATION_ANSWERED
+  PII_MASKED
+  SECURITY_SCAN_PASS
+  SECURITY_SCAN_FAIL
+  SANDBOX_CREATE
+  SANDBOX_DESTROY
+  TEST_RUN_COMPLETE
+  CI_RESULT
+  PR_OPENED
+  PR_MERGED
+  MODE_CHANGED
+  HANDOVER
+  ASSIGN_APP
+  PARAM_CHANGED
+  BINDING_CHANGED
+  KILL_SWITCH
+  MCP_TOOL_CALL
+  QUOTA_WARN
+  RETENTION_ARCHIVE
+  RESTORE_DRILL
+  RUN_CLOSED
+}
+
+/// LlmRole (M17/M43)
+enum LlmRoleE {
+  intake
+  analyst
+  engineer
+  dev_reviewer
+  test_designer
+  test_reviewer
+  test_engineer
+}
+
+/// SubscriptionAccountState (M55)
+enum SubscriptionStateE {
+  ready
+  cooling
+  exhausted
+  disabled
+}
+
+/// StepKind
+enum StepKindE {
+  system
+  ai
+  human_gate
+  human_wait
+  auto_gate
+}
+
+/// ApplicationRecord.createdVia (M100)
+enum CreatedViaE {
+  onboarding
+  import
+}
+
+// ---------------------------------------------------------------------------
+// Workflow
+// ---------------------------------------------------------------------------
+
+model WorkflowRun {
+  id        String     @id @db.VarChar(128)
+  ticketKey String     @db.VarChar(64)
+  appId     String?    @db.VarChar(64)
+  mode      WorkModeE
+  risk      RiskTierE?
+  dataClass DataClassE
+  /// StepId — kept as text: "2b"/"3o" are not legal Prisma enum identifiers,
+  /// so contracts' StepId enum stays the single validator (M104 titles too).
+  step      String     @db.VarChar(8)
+  status    RunStatus
+  matchJson Json? // MatchResult (M99)
+  startedAt DateTime   @db.Timestamptz(3)
+  updatedAt DateTime   @updatedAt @db.Timestamptz(3)
+
+  /// ---------------------------------------------------------------------
+  /// Run context (Dalga 5). An activity receives a `TicketKey` and nothing
+  /// else — the workflow may not carry mutable business state through its
+  /// arguments — so every fact about the run is read back from this row
+  /// (`RunContextStore`, packages/workflows/src/impl/deps.ts).
+  ///
+  /// The columns are NOT NULL with defaults rather than nullable: a run whose
+  /// branch is NULL is a run the engineering turn cannot push, and "" is a
+  /// value the store can refuse loudly. Nullable columns would push that
+  /// check to every reader, and one of them would forget.
+  /// ---------------------------------------------------------------------
+  /// Locale — text, because contracts' Locale is the validator (M104).
+  locale           String  @default("tr") @db.VarChar(8)
+  /// Prompt-variant the run is pinned to (M38).
+  variantId        String  @default("") @db.VarChar(64)
+  /// Analysis template pinned at run start (M83).
+  templateVersion  String  @default("") @db.VarChar(64)
+  workspacePath    String  @default("")
+  /// False after an M65 archive — the clone is gone, the context is not.
+  workspacePresent Boolean @default(false)
+  /// The repo's ADDITIONS to the M52 deny-list, from `.maestro.yaml` (M71).
+  protectedPathsJson Json? // string[]
+  /// The repo's own lint/build/test commands (`.maestro.yaml`, M71).
+  verificationJson   Json? // CommandSpec[]
+  branch           String  @default("") @db.VarChar(255)
+  targetBranch     String  @default("") @db.VarChar(255)
+  prId             Int?
+  /// Resume token of the live agent session (M30); NULL before the first turn.
+  resumeToken      String?
+
+  /// ---------------------------------------------------------------------
+  /// When an operator retired this run from the dashboard's default view
+  /// (0019). NULL = active, which is what every row was before the column
+  /// existed — archiving is opt-in per run and changes nothing else.
+  ///
+  /// It is NOT a delete and must never grow into one. A `WorkflowRun` is
+  /// pointed at by its journal, its step events and its evidence package, and
+  /// the M33 chain records what it did; the row stays exactly where it is and
+  /// only the LISTING learns to leave it out. `Json?`-style nullability is the
+  /// whole mechanism: `archivedAt = NULL` is un-archiving, so the operator who
+  /// archives the wrong run undoes it from Studio rather than from a DBA's
+  /// prompt.
+  ///
+  /// A timestamp rather than a boolean: "when did this leave the board" is an
+  /// ordinary listing question, and a boolean would push it into the audit
+  /// chain, which is the wrong place to ask a question about a row's display.
+  /// ---------------------------------------------------------------------
+  archivedAt       DateTime? @db.Timestamptz(3)
+
+  stepEvents  StepEvent[]
+  gates       Gate[]
+  strikes     StrikeCounter[]
+  journal     JournalEntry[]
+  application Application?   @relation(fields: [appId], references: [appId], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([status])
+  @@index([appId, status])
+  @@index([updatedAt]) // Studio "recent runs" list ordering
+  /// One ticket may legitimately be re-run (kill switch, handover, a second
+  /// `/ai-start`), so the key is indexed, not unique. "At most one LIVE run per
+  /// ticket" is a partial unique index Prisma cannot express — it lives in
+  /// prisma/migrations/0002_append_only_and_guards/migration.sql, widened by
+  /// 0011_failed_run_is_terminal to treat `fail` as finished too. "Live" there
+  /// and `TERMINAL_STATUSES` in apps/deploy/src/stores/run-context.ts are the
+  /// same set in two languages; changing one without the other either blocks
+  /// re-runs (P2002) or hands activities a dead run's context.
+  @@index([ticketKey])
+}
+
+model StepEvent {
+  id       BigInt    @id @default(autoincrement())
+  runId    String    @db.VarChar(128)
+  step     String    @db.VarChar(8)
+  kind     StepKindE
+  at       DateTime  @db.Timestamptz(3)
+  dataJson Json?
+
+  run WorkflowRun @relation(fields: [runId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([runId, at])
+}
+
+model JournalEntry {
+  runId    String        @db.VarChar(128)
+  seq      Int
+  at       DateTime      @db.Timestamptz(3)
+  actor    JournalActorE
+  kind     JournalKindE
+  title    String
+  detail   String        @default("")
+  costJson Json?
+
+  run WorkflowRun @relation(fields: [runId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([runId, seq]) // append-only; no updates by convention (M30)
+}
+
+/// One approval gate, and the escalation ladder's anchor (M88).
+///
+/// `openedAt` is that anchor: the ladder's thresholds are measured from it, so
+/// re-opening an already-open gate must NOT move it — `GateStore.open` is
+/// idempotent and the primary key below is what makes that enforceable rather
+/// than merely intended. Two workers racing the same signal get one row and
+/// one ladder, not two.
+///
+/// `firedStepIds` is the ladder's memory: a step whose id is in this array is
+/// never sent again. It is an array column rather than a child table because
+/// it is only ever read whole, and because appending under a single UPDATE is
+/// what keeps a concurrent reminder from losing the other's write.
+model Gate {
+  runId    String    @db.VarChar(128)
+  /// StepId — text, same reason as `WorkflowRun.step`.
+  step     String    @db.VarChar(8)
+  /// The group that OWNS the gate; only its members may close it (M32/M51).
+  ownerGroup String  @db.VarChar(128)
+  openedAt DateTime  @db.Timestamptz(3)
+  /// Ladder steps already sent; the ladder never fires the same one twice.
+  firedStepIds String[]
+  /// NULL while the gate is open. A closed gate is never re-opened — a second
+  /// decision on the same step is a new run's business (M51).
+  closedAt DateTime? @db.Timestamptz(3)
+
+  run WorkflowRun @relation(fields: [runId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([runId, step])
+  @@index([closedAt]) // "which gates are still open" — the ladder's sweep
+}
+
+/// Three-strike counters (M54), made durable.
+///
+/// The stuck-protection rule is "the same failure three times → drop to
+/// ai-assist and hand the ticket to a human". Counting that in memory works
+/// for one worker that never stops, and neither holds: a worker is redeployed
+/// mid-run, and Temporal can retry an activity on a DIFFERENT worker from the
+/// one that recorded strike two. Both reset the count to zero, so "three
+/// rejections at the same gate" never arrives and the run retries the same
+/// failing turn forever — the exact stuck loop M54 exists to break.
+///
+/// Keyed by `(runId, scope, ref)` because different scopes never share a
+/// count: a green build does not absolve three rejections at the Tech Lead
+/// gate, so only the key that succeeded is ever cleared.
+model StrikeCounter {
+  runId String @db.VarChar(128)
+  /// gate | ci | agent — see `STRIKE_SCOPES`.
+  scope String @db.VarChar(16)
+  /// Gate id ("5"), CI-error fingerprint, or the agent failure reason.
+  ref   String @db.VarChar(256)
+
+  count Int
+  /// When this counter opened; kept across a restart so the handover note can
+  /// say how long the run has been stuck rather than when it was last read.
+  firstAt DateTime @db.Timestamptz(3)
+  lastAt  DateTime @db.Timestamptz(3)
+  /// Most recent reasons, oldest first; the handover note quotes them.
+  reasons String[]
+
+  /// Restrict, like every other relation in this schema (M30/M56): a run's
+  /// rows are evidence of how it was handled, and a cascade would let a
+  /// deletion elsewhere quietly take the record of a handover with it. The
+  /// counters are cleared explicitly, by the ledger, when they stop applying.
+  run WorkflowRun @relation(fields: [runId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([runId, scope, ref])
+  /// "which runs are stuck" — the operator's view and the ledger's hydrate.
+  @@index([runId])
+}
+
+/// Table-backed idempotency (M33).
+///
+/// Temporal retries an activity that failed halfway, so "post the Jira comment,
+/// then append the audit record" would run the comment twice unless something
+/// remembers across processes. `InMemoryIdempotency` remembers within ONE
+/// worker; this table is what makes the guarantee survive a second worker and
+/// a restart.
+///
+/// The primary key is the whole mechanism: two workers racing the same key
+/// both INSERT, exactly one wins, and the loser waits for the winner's row
+/// rather than running the effect a second time.
+model IdempotencyKey {
+  key       String   @id @db.VarChar(512)
+  /// `done` rows carry the first result, replayed verbatim on every retry.
+  /// A row is inserted `running` first: the claim has to be visible to the
+  /// racing worker BEFORE the effect runs, or both would run it.
+  state     String   @db.VarChar(16) // running | done
+  /// The first result, JSON-encoded. NULL while `running`, and legitimately
+  /// NULL for a `done` effect that returned `undefined`.
+  resultJson Json?
+  claimedAt DateTime @db.Timestamptz(3)
+  /// Set when the effect completed; NULL while `running`.
+  completedAt DateTime? @db.Timestamptz(3)
+
+  @@index([claimedAt]) // retention sweep: finished keys are not kept forever
+}
+
+/// Publish receipts, keyed by document (M47/M75).
+///
+/// `@maestro/publish` remembers "I already posted this analysis as comment
+/// 4711 with hash abc" so a republish EDITS that comment instead of adding a
+/// second one. `InMemoryPublishState` loses that on restart, and the next
+/// publish then posts a duplicate to a bank's ticket — which is why the
+/// composition root refused to build the publish deps without this table.
+///
+/// The value is opaque text: each driver stores its own shape (a Confluence
+/// page id, a JSON `{commentId, hash}`), and giving them columns here would
+/// make this table know about drivers it must not know about.
+model PublishState {
+  key   String @id @db.VarChar(512)
+  value String
+
+  updatedAt DateTime @db.Timestamptz(3)
+}
+
+// ---------------------------------------------------------------------------
+// Application registry (M100)
+// ---------------------------------------------------------------------------
+
+model Application {
+  appId              String      @id @db.VarChar(64)
+  displayName        String
+  adoProject         String
+  adoRepo            String
+  /// PlatformProfile — text because "linux-node" & co. are not legal Prisma
+  /// enum identifiers; contracts' PlatformProfile is the validator.
+  platform           String      @db.VarChar(32)
+  jiraComponent      String?     @db.VarChar(128)
+  maestroYamlPresent Boolean     @default(false)
+  createdVia         CreatedViaE
+
+  runs      WorkflowRun[]
+  repoCards RepoCard[]
+}
+
+model RepoCard {
+  appId            String   @db.VarChar(64)
+  version          Int
+  modulesJson      Json // RepoCardModule[]
+  generatedFromSha String   @db.VarChar(40)
+  updatedAt        DateTime @db.Timestamptz(3)
+
+  application Application @relation(fields: [appId], references: [appId], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([appId, version])
+}
+
+// ---------------------------------------------------------------------------
+// Jira binding & routing (M102/M99)
+// ---------------------------------------------------------------------------
+
+model JiraProjectBinding {
+  projectKey       String        @id @db.VarChar(32)
+  trigger          TriggerModeE
+  triggerLabel     String        @default("maestro") @db.VarChar(64)
+  defaultsJson     Json // { mode, dataClass }
+  state            BindingStateE
+  dryRunSampleSize Int           @default(20)
+  lastDryRunAt     DateTime?     @db.Timestamptz(3)
+  version          Int           @default(1)
+}
+
+model RoutingRule {
+  ruleId        String  @id @db.VarChar(64)
+  /// NULL = org-wide rule, which the contract spells `"*"`
+  /// (`RoutingRule.projectKey = ProjectKey.or("*")`). `src/routing-map.ts` owns
+  /// the `"*" <-> NULL` translation, so no caller invents its own sentinel.
+  ///
+  /// Deliberately NOT a foreign key to `JiraProjectBinding`: an org-wide guard
+  /// rule has no binding to point at, and M102's `unbind` keeps a project's
+  /// history after its binding row is gone.
+  projectKey    String? @db.VarChar(32)
+  conditionJson Json // RuleCondition
+  effectJson    Json // { appId?, mode?, dataClass? }
+  priority      Int
+
+  @@index([projectKey, priority])
+}
+
+// ---------------------------------------------------------------------------
+// Listening rules — status/issuetype → flow-type routing (UI-managed)
+// ---------------------------------------------------------------------------
+
+/// One "listen to this" rule: when a ticket in `projectKey` is assigned to
+/// `assigneeAccountId` (the Maestro Bot) AND its `matchKind` field equals
+/// `matchValue`, Maestro should pick it up and run it as the given `flowType`
+/// (analiz | duzeltme | gelistirme). This turns the hard-coded, single-project,
+/// type-blind discovery (`apps/pilot/src/config.ts` `discoveryJql`) into rows an
+/// admin edits from Studio — the "tüm ayarlar UI'dan" posture.
+///
+/// Modelled on `RoutingRule` (its own table, not a Param and not a contract
+/// change): the frozen `RuleCondition` only knows always|component|label, and a
+/// multi-row rule list does not fit the single-value Param model. `flowType`,
+/// `matchKind` and `matchValue` are presentation strings guarded by a CHECK in
+/// the migration, never a Prisma enum, so a new flow type needs no schema
+/// migration of an enum type.
+///
+/// `matchKind` = "status" matches the ticket's current status NAME (needs the
+/// status to exist on the board); "issuetype" matches the issue type NAME
+/// (works on any project with no board change). Deliberately NOT a foreign key
+/// to any binding, for the same reason `RoutingRule` is not.
+model ListeningRule {
+  ruleId            String  @id @db.VarChar(64)
+  projectKey        String  @db.VarChar(32)
+  /// The account the ticket must be assigned to (the Maestro Bot accountId).
+  assigneeAccountId String  @db.VarChar(128)
+  /// "status" | "issuetype" | "assigned" — which ticket field `matchValue` is
+  /// compared to. `assigned` (0020) compares NOTHING: the rule triggers on the
+  /// assignment alone, which is how "bota atanan her ticket" is expressed.
+  matchKind         String  @db.VarChar(16)
+  /// The status name or issue-type name that triggers this rule. For an
+  /// `assigned` rule it is the fixed literal `*`, carried only so the unique
+  /// trigger index below keeps ONE such rule per (project, bot) — the column
+  /// stays NOT NULL because NULLs do not collide in a Postgres unique index.
+  matchValue        String  @db.VarChar(128)
+  /// "analiz" | "duzeltme" | "gelistirme" — the flow Maestro runs.
+  flowType          String  @db.VarChar(16)
+  priority          Int     @default(100)
+  enabled           Boolean @default(true)
+  /// Faz 3 (akış→ajan): the ANALYST variant this rule's flow runs under.
+  /// NULL = the platform default (`analyst-default`) — today's behaviour.
+  analystVariantId  String? @db.VarChar(64)
+  /// Faz 3: the ENGINEER variant for this rule's flow. NULL = default.
+  engineerVariantId String? @db.VarChar(64)
+  /// OPTIONAL Jira status map: which target status the ticket is MOVED to at
+  /// each point of the flow (onStart / onNeedInfo / onReview / onRejected /
+  /// onDone, plus `reassignOnNeedInfo`). NULL is the default and means
+  /// comment-only mode — Maestro narrates progress in comments and never
+  /// touches the board, which is exactly today's behaviour for every existing
+  /// row. A non-null map opts that one rule into transition mode.
+  ///
+  /// Json, not columns: the set of flow points is a product decision that has
+  /// already moved once (Faz 3 added the variant pair) and will move again;
+  /// five more nullable VARCHARs per point would make each new point a
+  /// migration against a live table. The values are STATUS NAMES, never Jira
+  /// transition ids — ids are per-workflow and meaningless the moment a rule is
+  /// copied to another project, whereas a name the operator typed is the same
+  /// thing they read on the board.
+  statusMapJson     Json?
+
+  /// One rule per (project, assignee, match target): a given trigger maps to
+  /// exactly one flow, so a second rule for the same trigger is a mistake, not
+  /// an ambiguity the runtime has to resolve.
+  @@unique([projectKey, assigneeAccountId, matchKind, matchValue])
+  @@index([projectKey, enabled])
+}
+
+// ---------------------------------------------------------------------------
+// Parameters (M71) — versioned + audited operational settings
+// ---------------------------------------------------------------------------
+
+model Param {
+  key     String      @id @db.VarChar(64)
+  scope   ParamScopeE
+  type    ParamTypeE
+  guarded Boolean
+  defJson Json // ParamDefinition remainder (enumValues, descriptionKey, defaultValue)
+
+  versions ParamVersion[]
+}
+
+model ParamVersion {
+  key        String   @db.VarChar(64)
+  scopeRef   String   @default("") @db.VarChar(64) // "" = global scope
+  version    Int
+  valueJson  Json
+  /// Denormalized copy of `Param.guarded` as it stood when the version was
+  /// written. It exists so the database itself can enforce four-eyes: a CHECK
+  /// constraint refuses a guarded version with no approver (M71/M78). A
+  /// sub-query cannot appear in a CHECK, hence the copy. `writeParamVersion()`
+  /// is the only writer and reads the flag from `Param`.
+  guarded    Boolean
+  changedBy  String
+  approvedBy String? // NOT NULL whenever `guarded` — CHECK in migration 0002
+  at         DateTime @db.Timestamptz(3)
+
+  param Param @relation(fields: [key], references: [key], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([key, scopeRef, version])
+}
+
+/// An OPEN four-eyes proposal: a value with no approver yet (M71/M78).
+///
+/// Separate from `ParamVersion` on purpose — that table's CHECK refuses a
+/// guarded row with no approver, which is exactly what a pending proposal is.
+/// Making the queue durable means an open proposal (a guarded parameter change
+/// OR an onboarding binding, both keyed generically) survives a BFF restart
+/// instead of forcing the first proposer to start over. No FK to `Param`: an
+/// `onboarding.binding` proposal is not a parameter, it just shares the queue.
+model PendingParamChange {
+  key        String   @db.VarChar(64)
+  scopeRef   String   @default("") @db.VarChar(64) // "" = global scope
+  valueJson  Json
+  proposedBy String
+  at         DateTime @db.Timestamptz(3)
+
+  @@id([key, scopeRef])
+}
+
+// ---------------------------------------------------------------------------
+// Audit (M33) — hash chain, append-only
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  seq      BigInt       @id // assigned by packages/audit under a chain lock
+  at       DateTime     @db.Timestamptz(3)
+  actor    String
+  action   AuditActionE
+  subject  String       @db.VarChar(128)
+  /// Unique: two rows may never share a predecessor, so the chain cannot fork
+  /// and there is at most one genesis row (M33). The writer's lock orders
+  /// appends inside one process; this index is what stops a second process.
+  prevHash String       @unique @db.VarChar(64) // sha256 hex | "genesis"
+  hash     String       @unique @db.VarChar(64)
+  metaJson Json?
+
+  @@index([at])
+  @@index([action])
+  @@index([subject]) // evidence package collects one ticket's chain
+}
+
+// ---------------------------------------------------------------------------
+// LLM gateway (M16/M55)
+// ---------------------------------------------------------------------------
+
+model LlmCall {
+  id        BigInt     @id @default(autoincrement())
+  at        DateTime   @db.Timestamptz(3)
+  runId     String?    @db.VarChar(128) // no FK: calls may outlive/precede a run row
+  role      LlmRoleE
+  variantId String     @db.VarChar(64)
+  /// LlmDriverId — text because "anthropic-direct"/"claude-sub" are not legal
+  /// Prisma enum identifiers; contracts' LlmDriverId is the validator.
+  driver    String     @db.VarChar(32)
+  model     String     @db.VarChar(128)
+  tokensIn  Int
+  tokensOut Int
+  cachePct  Float?
+  usd       Decimal?   @db.Decimal(12, 6) // null for subscription drivers (M55)
+  dataClass DataClassE
+
+  @@index([runId])
+  @@index([at])
+  @@index([driver, at]) // per-driver cost/quota reporting
+}
+
+model SubscriptionAccount {
+  accountId   String             @id @db.VarChar(64)
+  /// SubscriptionDriverId — text (dashes are not legal enum identifiers).
+  driver      String             @db.VarChar(32)
+  state       SubscriptionStateE
+  windowsJson Json // QuotaWindow[] (M55)
+  lastUsedAt  DateTime?          @db.Timestamptz(3)
+
+  @@index([driver, state]) // quota-aware pool picker
+}
+
+model Variant {
+  id   String   @id @db.VarChar(64)
+  role LlmRoleE
+  name String
+
+  versions VariantVersion[]
+}
+
+model VariantVersion {
+  variantId  String   @db.VarChar(64)
+  version    Int
+  model      String   @db.VarChar(128)
+  configJson Json
+  evalScore  Float?
+  createdAt  DateTime @db.Timestamptz(3)
+
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([variantId, version])
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge & evidence
+// ---------------------------------------------------------------------------
+
+/// Versioned by (id, version): M83 pins a flow to the template version it
+/// started with, so a version may never be overwritten in place. Same pattern
+/// as RepoCard.
+model KnowledgeDoc {
+  id         String   @db.VarChar(64)
+  kind       String   @db.VarChar(32) // template | example_analysis | standard | app_intro | policy
+  title      String
+  version    Int
+  contentRef String // StoragePort key
+  updatedAt  DateTime @db.Timestamptz(3)
+
+  @@id([id, version])
+  @@index([kind])
+}
+
+/// Analysis guidance ("öğren" notes) — the knowledge library an operator uploads
+/// so the AI takes it into account when preparing a NEW analysis. Each row is a
+/// short instruction/knowledge document ("dikkat edilecekler"); when `enabled`,
+/// its text is injected into the analyst's context (agent-roles KnowledgePack
+/// `knowledgeDocs`). Unlike KnowledgeDoc this holds the CONTENT inline (small
+/// text notes, not stored blobs) — that is the whole point: an admin types or
+/// pastes a rule and the analyst leans on it, no storage plumbing.
+model AnalysisGuidance {
+  id        String   @id @db.VarChar(64)
+  title     String
+  /// The guidance text itself — injected verbatim into the analysis prompt.
+  content   String
+  /// True = the AI learns from it (injected into new analyses). False = kept but
+  /// ignored, so an admin can pause a note without deleting it.
+  enabled   Boolean  @default(true)
+  /// Ajan hedefi: NULL = HERKESE (her ajanın bağlamına girer — bugünkü davranış);
+  /// dolu = yalnız o variant'ın koştuğu run'larda o ajanın bağlamına girer.
+  /// Bir ajanın detay ekranından yüklenen belge buraya o ajanın id'siyle yazılır.
+  variantId String?  @db.VarChar(64)
+  updatedAt DateTime @db.Timestamptz(3)
+
+  @@index([enabled])
+  @@index([variantId])
+}
+
+model EvidencePackageRow {
+  runId        String   @id @db.VarChar(128)
+  /// Indexed, not unique: a re-run produces a second package, and refusing to
+  /// store it would mean losing evidence (M34/M56).
+  ticketKey    String   @db.VarChar(64)
+  createdAt    DateTime @db.Timestamptz(3)
+  manifestJson Json // EvidencePackage manifest
+  storageKey   String
+
+  @@index([createdAt]) // 10-year retention sweeps (M56)
+  @@index([ticketKey])
+}
+
+/// The institution's own Word template (M103r/M109), one row per upload.
+///
+/// Append-only by intent: a run pinned to version 2 (M83) must still be able to
+/// render against version 2 after version 3 lands, so an upload INSERTs and
+/// never updates. `version` is the primary key, which makes the "no two
+/// uploaders both become version 3" rule the database's rather than the
+/// application's.
+model DocTemplateVersion {
+  version    Int      @id
+  fileName   String   @db.VarChar(200)
+  uploadedAt DateTime @db.Timestamptz(3)
+  uploadedBy String   @db.VarChar(128)
+  sizeBytes  Int
+  /// Style names read out of the .docx at upload time — string[].
+  stylesJson Json
+  /// The placeholder scan AS PERFORMED for this version. Stored rather than
+  /// recomputed on read: it is what the document owner approved, and a scanner
+  /// improved later must not retroactively change what version 3 contained.
+  placeholdersJson Json
+  /// The file itself, verbatim. The bank's cover, header/footer, logo and
+  /// styles survive precisely because nothing re-serialises these bytes.
+  content    Bytes
+}
+
+/// A document this platform produced, for the template screen's output list
+/// and for answering "which template version was this rendered against".
+model DocTemplateOutputRow {
+  id              String   @id @db.VarChar(128)
+  fileName        String   @db.VarChar(400)
+  at              DateTime @db.Timestamptz(3)
+  /// Not a foreign key: version 0 means "rendered on the built-in fallback
+  /// because no corporate template was uploaded", which points at no row and
+  /// is exactly the case the screen must be able to show.
+  templateVersion Int
+
+  @@index([at])
+}
+
+/// A published ANALYSIS template version (M108), one row per publish.
+///
+/// Not to be confused with `DocTemplateVersion` above: that one is the Word
+/// file an analysis is RENDERED into, this one is the set of questions the
+/// analysis is asked to ANSWER. They version independently — a bank may
+/// restyle its document without changing what an analyst must write.
+///
+/// Append-only for the same reason as every other versioned table here: the
+/// template is what an approved analysis was JUDGED against (M83). Rewriting
+/// version 4 would silently restate a question a human already signed off on,
+/// and a run pinned to version 4 must keep reading version 4 after 5 lands.
+/// `version` is the primary key, so "two authors cannot both publish version
+/// 5 with one draft silently lost" is the database's rule, not the app's.
+model AnalysisTemplateVersion {
+  version     Int      @id
+  name        String   @db.VarChar(200)
+  /// The designed sections, in author order — TemplateSection[]. Stored as one
+  /// document rather than a child table on purpose: a version is read whole,
+  /// never queried by section, and the section list IS the unit that must stay
+  /// immutable together. A child table would let a stray DELETE remove one
+  /// question from a version an auditor already accepted.
+  sectionsJson Json
+  publishedBy String   @db.VarChar(128)
+  publishedAt DateTime @db.Timestamptz(3)
+}
+
+// MVP local users (M8); AD/LDAP arrives in Aşama 2.
+model User {
+  id           String  @id @db.VarChar(64)
+  email        String  @unique @db.VarChar(320)
+  displayName  String
+  passwordHash String
+  groupsJson   Json // string[]
+  active       Boolean @default(true)
+  /// First-run bootstrap flag (banking standard). The seed plants ONE admin
+  /// account with a weak, policy-EXEMPT password (`admin`/`admin123`) so a
+  /// fresh clean install can log in — and sets this true so the platform
+  /// FORCES a password change before that account can do anything else. The
+  /// change-password flow (apps/bff/src/routes/auth.ts) runs the full M8 policy
+  /// on the NEW password and clears this flag; while it is true the session is
+  /// restricted to change-password/logout/session only. Defaults false, so
+  /// every account an admin creates through the normal policy-checked provision
+  /// path is unrestricted from its first login.
+  mustChangePassword Boolean @default(false)
+}
+
+// ---------------------------------------------------------------------------
+// Durable sessions & kill switch (Dalga E — prod hardening)
+// ---------------------------------------------------------------------------
+
+/// A logged-in session (M8), made durable.
+///
+/// The BFF shipped an `InMemorySessionStore`: a restart signed every logged-in
+/// user out at once, mid-task, with no warning. For a bank that is a support
+/// storm rather than a data loss — but the platform runs under
+/// `restart: unless-stopped`, so it is a storm that arrives on any redeploy or
+/// crash. This table is what makes a session survive one.
+///
+/// The token is the whole credential (256 bits from the CSPRNG) and is the
+/// primary key: a lookup is a single indexed read rather than a table scan, and
+/// two logins can never collide on one row. Expiry is ABSOLUTE (`expiresAt`),
+/// not sliding — a session ends eight hours in whatever it did in between — and
+/// `expiresAt` is indexed so the TTL sweep that drops stale rows is a range
+/// scan, not a full-table walk.
+model Session {
+  /// The bearer token, verbatim. Base64url of 32 random bytes — long enough
+  /// that a VARCHAR bound is a documentation aid, not a real limit.
+  token     String   @id @db.VarChar(128)
+  /// The audit actor (`user@corp`, M33); indexed because logout and role
+  /// changes act on every session an ACCOUNT holds, not on one token.
+  userId    String   @db.VarChar(128)
+  username  String
+  /// Directory groups and the platform roles derived from them at issue time —
+  /// string[]. A role change re-issues rather than mutates, so what a token
+  /// carries is what it was granted, which is what the guard must read back.
+  rolesJson  Json
+  groupsJson Json
+  /// True when an AI tool holds this token on the user's behalf (M101). Stored
+  /// so a delegated session survives a restart still marked delegated — a gate
+  /// decision under a delegated token is refused (M32), and losing the flag on
+  /// restart would silently re-open a human-only channel.
+  delegated Boolean  @default(false)
+  issuedAt  DateTime @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+
+  @@index([userId]) // logout / off-boarding: every session an account holds
+  @@index([expiresAt]) // the TTL sweep of stale rows
+}
+
+/// The platform's emergency brake (M58), made durable — the whole point of
+/// this table.
+///
+/// `InMemoryKillSwitchStore` started at `off` and the process runs under
+/// `restart: unless-stopped`: an operator sets the switch to `all` during an
+/// incident, the container restarts for any reason, and the brake is RELEASED
+/// silently with the write paths open again. "The platform is stopped" was a
+/// belief, not a fact, at the moment it had to be a fact. The prod profile
+/// refused to start without a durable store for exactly this; this table is
+/// that store.
+///
+/// Single-row by construction: `id` is a fixed sentinel (`ONLY`) and the CHECK
+/// in the migration refuses any other value, so there is one brake and reading
+/// it is a point lookup. The row is UPSERTed on every `set`, so the current
+/// state is always the one row's columns — no "latest by timestamp" query that
+/// a clock skew could answer wrong.
+model KillSwitch {
+  /// Always `"ONLY"`. The migration's CHECK makes a second row impossible, so
+  /// "the kill switch" is one row and not "the newest of several".
+  id     String @id @db.VarChar(8)
+  /// off | intake_only | all — KillSwitchLevel. Text, not a Prisma enum: the
+  /// contract's union is the validator and these are not all legal enum
+  /// identifiers under @map-free rules the schema follows.
+  level  String @db.VarChar(16)
+  /// Who set it and why — carried into the audit row and shown to the operator.
+  actor  String @db.VarChar(128)
+  reason String
+  at     DateTime @db.Timestamptz(3)
+}
+
+// ---------------------------------------------------------------------------
+// Managed connectors (connector-management surface — migration 0010)
+// ---------------------------------------------------------------------------
+
+/// An admin-editable outbound connection (Jira, GitHub, LLM, Vault, …).
+///
+/// The EDITABLE counterpart to the settings screen's read-only deployment
+/// facts. A row here is a URL + auth kind + non-secret config an admin enters
+/// from Studio, plus a REFERENCE (`secretRef`) to the AES-encrypted token in
+/// `ConnectorSecret`. The token is NEVER a column on this table — a row an
+/// operator can read must not be a row that can leak a PAT (M9). What a read
+/// gets instead is `secretMask` (the last four chars, for recognition) and the
+/// presence of a `secretRef` (whether a token is set at all).
+///
+/// `kind` and `authKind` are text, not Prisma enums: the schema follows a
+/// @map-free convention (enums only where every contract option is a legal
+/// Prisma identifier), and the Zod `ConnectionKind`/`ConnectionAuthKind` unions
+/// in @maestro/contracts are the validator. `configJson` is the non-secret
+/// config bag; a CHECK cannot police its shape, so the contract does.
+model Connection {
+  /// e.g. "jira", "github", "llm-openrouter". Lower-case, URL-safe: it is also
+  /// the `/studio/connections/:id` path segment.
+  id           String   @id @db.VarChar(64)
+  kind         String   @db.VarChar(32)
+  displayName  String   @db.VarChar(120)
+  baseUrl      String   @db.VarChar(2048)
+  authKind     String   @db.VarChar(16)
+  /// Non-secret config only (email, owner, repo, project). Never a token.
+  configJson   Json
+  /// Points at the encrypted secret in `ConnectorSecret`; null until one is set.
+  /// NEVER the token itself. Nullable so a config-only connection can exist
+  /// before an admin enters a credential.
+  secretRef    String?  @db.VarChar(256)
+  /// The LAST FOUR characters of the stored token — the only glimpse a read
+  /// gets, for recognition. Null when no token is set. Four chars is not a
+  /// secret; the value it belongs to never lives on this table.
+  secretMask   String?  @db.VarChar(4)
+  enabled      Boolean  @default(true)
+  /// Whether this endpoint runs INSIDE the institution (M18).
+  ///
+  /// Only a model connection uses it, and the `gizli` class leans on it and on
+  /// nothing else — never on a guess made from the URL, because a private-looking
+  /// address is not the same claim as an operator asserting where the weights
+  /// actually run. It replaces `LLM_ON_PREM` for a panel-managed model, and it is
+  /// deliberately per-ROW: an install may hold both an internal server and a
+  /// cloud vendor, and the confidential rule has to be able to tell them apart.
+  ///
+  /// Defaults to FALSE, which is the fail-closed direction: a row whose operator
+  /// never answered the question is treated as cloud, so `gizli` work degrades
+  /// rather than silently shipping a bank's confidential payload off-premises.
+  onPrem       Boolean  @default(false)
+  /// The model this install dials by default, among the rows of its kind.
+  ///
+  /// Exactly one row may hold it (`Connection_one_default_model`, a partial
+  /// unique index). Making it a database fact rather than a UI convention is
+  /// what stops two enabled models both claiming the default and the runtime
+  /// picking whichever the row order happened to return — an install whose
+  /// answering model depends on a query plan is not one a bank can audit.
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @db.Timestamptz(3)
+  updatedAt    DateTime @db.Timestamptz(3)
+  /// The last LIVE test and its honest verdict. `lastTestOk` is null until the
+  /// first test — "never checked" must be distinguishable from "checked and
+  /// broken", so it is a nullable Boolean rather than a default false.
+  lastTestedAt DateTime? @db.Timestamptz(3)
+  lastTestOk   Boolean?
+  /// A short, SECRET-FREE note from the last test — the catalog message KEY of
+  /// its outcome (e.g. "connection.test.unauthorized"), never a token, DSN or
+  /// raw driver message. Null until the first test. It lets the panel show WHY a
+  /// test failed ("✗ 401 unauthorized") instead of a bare red dot, without ever
+  /// putting a credential on a row a console can read.
+  lastTestNote String?  @db.VarChar(128)
+}
+
+/// The AES-256-GCM ciphertext of one connector token (migration 0010).
+///
+/// This is where a console-entered secret actually lives, separated from
+/// `Connection` on purpose: the token bytes have a different blast radius than
+/// a connection's URL, and keeping them in their own table means a query that
+/// reads connections for a screen cannot accidentally select the ciphertext.
+/// `EncryptedSecretStore` (apps/deploy) is the only SecretPort whose `set`
+/// writes here and whose `get` decrypts.
+///
+/// Nothing here is plaintext. `iv` is a fresh 12-byte GCM nonce per write,
+/// `authTag` is the 16-byte GCM tag verified on decrypt (a tampered ciphertext
+/// throws, never decrypts to garbage), and `ciphertext` is the enciphered
+/// token. The master key is NOT stored — it comes from `CONNECTOR_MASTER_KEY`
+/// in the environment, so a database dump alone cannot recover a token.
+model ConnectorSecret {
+  /// The `secretRef` a `Connection` row points at. Base64url of random bytes,
+  /// so it is unguessable and stable across a token rotation of the same
+  /// connection.
+  ref        String   @id @db.VarChar(256)
+  /// Per-secret GCM nonce, base64. Random on every write; reuse would break GCM.
+  iv         String   @db.VarChar(64)
+  /// The enciphered token, base64. Never the plaintext.
+  ciphertext String
+  /// The 16-byte GCM auth tag, base64. Verified on decrypt — tamper → throw.
+  authTag    String   @db.VarChar(64)
+  /// Which key version enciphered this, for a future key rotation. `v1` today.
+  keyVersion String   @db.VarChar(16)
+  createdAt  DateTime @db.Timestamptz(3)
+  updatedAt  DateTime @db.Timestamptz(3)
+}

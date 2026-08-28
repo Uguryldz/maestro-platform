@@ -1,0 +1,30 @@
+{
+  "subscriptionId": "7f6a2b91-3c4d-4e5f-8a9b-0c1d2e3f4a5b",
+  "notificationId": 19,
+  "id": "aa11bb22-cc33-4d44-9e55-6f6677889900",
+  "eventType": "build.complete",
+  "publisherId": "tfs",
+  "message": { "text": "Build 20260808.5 succeeded" },
+  "resource": {
+    "_links": {
+      "web": { "href": "https://dev.azure.com/ugurbank/UgurPay/_build/results?buildId=4713" }
+    },
+    "id": 4713,
+    "buildNumber": "20260808.5",
+    "status": "completed",
+    "result": "succeeded",
+    "finishTime": "2026-08-08T14:22:10.0000000Z",
+    "reason": "pullRequest",
+    "definition": { "id": 12, "name": "ugurpay-pr-validation", "type": "build" },
+    "sourceBranch": "refs/pull/130/merge",
+    "triggerInfo": {
+      "pr.number": "130",
+      "pr.sourceBranch": "refs/heads/hotfix/tls-cipher-order",
+      "pr.targetBranch": "refs/heads/main"
+    },
+    "project": { "id": "1c9f2b77-3d64-45e0-9a2b-7f4c6d81ea05", "name": "UgurPay" },
+    "repository": { "id": "5f8c3a1e-9b2d-4c7a-8e11-2b6d4f0a9c33", "type": "TfsGit", "name": "ugurpay" }
+  },
+  "resourceVersion": "2.0",
+  "createdDate": "2026-08-08T14:22:11.5000000Z"
+}

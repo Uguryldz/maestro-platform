@@ -1,0 +1,66 @@
+digraph MaestroV2Hafiza {
+  rankdir=TB;
+  bgcolor="white";
+  compound=true;
+  newrank=true;
+  splines=spline;
+  nodesep=0.5;
+  ranksep=0.7;
+  fontname="Helvetica";
+  node [fontname="Helvetica", fontsize=11, shape=box, style=filled,
+        fillcolor="white", color="#1E293B", penwidth=2, margin="0.28,0.18"];
+  edge [fontname="Helvetica", fontsize=10, color="#1E293B", penwidth=1.6];
+
+  labelloc="t";
+  label=<<FONT POINT-SIZE="22"><B>Ticket Hafızası — 15-20 Gün Bekle, Kaldığın Yerden Devam Et</B></FONT><BR/>
+        <FONT POINT-SIZE="12" COLOR="#64748B">chat geçmişi kaybolmaz: journal + yaşayan özet + Agent SDK session resume · kapılar otomatik REJECT ETMEZ</FONT><BR/>
+        <FONT POINT-SIZE="10" COLOR="#94A3B8">TASLAK · maestro/plan/masterplan.md §6.1 · v1: 48h'te auto-reject + her dönüşte bağlamsız sıfır sandbox — ikisi de kapandı</FONT>>;
+
+  // Zaman çizgisi
+  t1 [label="GÜN 0\nanalyst çalıştı · PO onayladı\nengineer oturumu: kod + testler\nPR açıldı", fillcolor="#DBEAFE", color="#2563EB", penwidth=2.2];
+
+  bekle [label="GÜN 1 → 18  —  KAPIDA BEKLEME\nTemporal durable timer (süresiz)\n24h: Jira hatırlatma yorumu\n72h: Slack bildirimi\n7g: backup kişiye delegasyon\nOTOMATİK RET YOK · continueAsNew hijyeni",
+         shape=hexagon, fillcolor="#FEF3C7", color="#D97706", penwidth=2.6, fontsize=11];
+
+  t2 [label="GÜN 18\nTech Lead: 'changes requested'\n(PR thread → sinyal)", fillcolor="#FED7AA", color="#EA580C", penwidth=2.2];
+
+  resume [label="DEVAM — SIFIRDAN DEĞİL\n① workspace cache mount (klon/install yok)\n② Agent SDK oturumu RESUME\n③ yaşayan özet + journal bağlamda\n→ ajan 'dün bıraktığı gibi' devam eder",
+          fillcolor="#DCFCE7", color="#16A34A", penwidth=2.8, fontsize=11];
+
+  t1 -> bekle [penwidth=2, color="#059669"];
+  bekle -> t2 [penwidth=2, color="#059669"];
+  t2 -> resume [penwidth=2.2, color="#16A34A"];
+
+  // Hafıza bileşenleri
+  subgraph cluster_mem {
+    label="  TİCKET HAFIZASI — 3 BİLEŞEN  (ticket key ile anahtarlı)  ";
+    style="filled,rounded"; fillcolor="#FFFBEB"; color="#D97706"; penwidth=2.6;
+    fontname="Helvetica-Bold"; fontsize=13; fontcolor="#92400E";
+    node [fillcolor="#FFFFFF", color="#D97706", fontsize=10];
+
+    j [label="① TİCKET DEFTERİ (journal)\nappend-only · StoragePort + DB index\nher ajan çıktısı · her insan kararı\nPR thread'leri · tarama sonuçları\nalınan teknik kararlar\n\n= kanıt paketinin hammaddesi", penwidth=2.2];
+
+    oz [label="② YAŞAYAN ÖZET\nher adım sonunda ucuz modelle güncellenir\n'ne yapıldı · hangi kararlar · açık konular'\nher ajan çağrısına eklenir\n20 günlük ham geçmiş taşınmaz", penwidth=2.2];
+
+    ses [label="③ AGENT SDK SESSION\nyapan rollerin oturum dosyaları\nticket çalışma alanında (cache katman ②)\ndönüşte RESUME\nworkspace uçtuysa: journal + özet ile\nyeni oturum bootstrap", penwidth=2.6, color="#DC2626"];
+
+    j -> oz -> ses [style=invis];
+  }
+
+  // Temporal güvence
+  temporal [label="TEMPORAL GÜVENCESİ\nworkflow durumu zaten kalıcı:\nsunucu restart'ı · deploy · 20 gün bekleme\nhiçbiri adım/sinyal kaybettirmez\n(v1'de de doğruydu — v2'de ajan bağlamı da eklendi)",
+            shape=cylinder, fillcolor="#DCFCE7", color="#16A34A", penwidth=2.2, fontsize=10];
+
+  // Döngü notu
+  dongu [label="AYNI MEKANİZMA KISA DÖNGÜLERDE\nCI fail → 6a · dev-review CHANGES → 6a\nPR yorum döngüsü → 6a\nher dönüş = önceki oturumun DEVAMI\n(v1: her dönüşte bağlamsız yeni sandbox)",
+         fillcolor="#F3E8FF", color="#9333EA", penwidth=2.2, fontsize=10];
+
+  // Bağlantılar
+  t1 -> j [lhead=cluster_mem, penwidth=1.8, color="#D97706", label="  her adım yazar  ", style=dashed];
+  ses -> resume [ltail=cluster_mem, penwidth=2.2, color="#D97706", label="  besler  "];
+  temporal -> bekle [penwidth=1.8, color="#16A34A", style=dashed, label="  durable timer  "];
+  resume -> dongu [penwidth=1.6, color="#9333EA", style=dashed];
+
+  { rank=same; temporal; bekle; }
+  { rank=same; resume; dongu; }
+}

@@ -1,0 +1,26 @@
+{
+  "repository": {
+    "id": "5f8c3a1e-9b2d-4c7a-8e11-2b6d4f0a9c33",
+    "name": "ugurpay",
+    "project": { "id": "1c9f2b77-3d64-45e0-9a2b-7f4c6d81ea05", "name": "UgurPay" }
+  },
+  "pullRequestId": 128,
+  "codeReviewId": 128,
+  "status": "active",
+  "creationDate": "2026-08-08T09:58:11.457Z",
+  "title": "[AI] UGURPAY-4312 IBAN validation",
+  "sourceRefName": "refs/heads/feature/UGURPAY-4312-iban-validation",
+  "targetRefName": "refs/heads/main",
+  "mergeStatus": "succeeded",
+  "isDraft": false,
+  "lastMergeCommit": { "commitId": "d3f9a172c48b5e60a7d1c2b3e4f5061728394a5b" },
+  "reviewers": [
+    {
+      "vote": 0,
+      "displayName": "Tech Lead",
+      "uniqueName": "tech.lead@ugurbank.local",
+      "isRequired": true
+    }
+  ],
+  "url": "https://dev.azure.com/ugurbank/UgurPay/_apis/git/repositories/ugurpay/pullRequests/128"
+}

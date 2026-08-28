@@ -1,0 +1,4 @@
+Kurum kök CA sertifikasını bu klasöre koyun (örn. kurumsal-kok-ca.pem, ldap-ca.pem).
+Compose bu klasörü konteynerlere /etc/maestro olarak salt-okunur mount eder.
+Dosya adını .env'deki NODE_EXTRA_CA_CERTS satırına yazın; install.sh dosyanın
+gerçekten burada olduğunu doğrular.

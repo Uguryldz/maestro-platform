@@ -1,0 +1,11 @@
+HTTP/1.1 200 OK
+Api-Version: 1.54
+Content-Type: application/json
+Docker-Experimental: false
+Ostype: linux
+Server: Docker/29.4.1 (linux)
+Date: Sat, 08 Aug 2026 23:52:42 GMT
+Content-Length: 336
+Connection: close
+
+{"CreatedAt":"2026-08-08T23:52:42Z","Driver":"local","Labels":{"maestro.layer":"workspace","maestro.managed":"true","maestro.owner":"10001:10001","maestro.workspace-key":"UGURPAY-1042"},"Mountpoint":"/var/lib/docker/volumes/maestro-ws-ugurpay-1042-fixture/_data","Name":"maestro-ws-ugurpay-1042-fixture","Options":null,"Scope":"local"}

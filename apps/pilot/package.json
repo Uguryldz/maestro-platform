@@ -1,0 +1,38 @@
+{
+  "name": "@maestro/pilot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "First real-Jira pilot: the shortened delivery flow against a live Jira Cloud site, ADO faked, model real",
+  "exports": {
+    ".": "./src/index.ts",
+    "./state": "./src/state.ts"
+  },
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@maestro/adapter-ado": "workspace:*",
+    "@maestro/adapter-github": "workspace:*",
+    "@maestro/adapter-jira": "workspace:*",
+    "@maestro/agent-roles": "workspace:*",
+    "@maestro/audit": "workspace:*",
+    "@maestro/config": "workspace:*",
+    "@maestro/contracts": "workspace:*",
+    "@maestro/llm-gateway": "workspace:*",
+    "@maestro/pii": "workspace:*",
+    "@maestro/ports": "workspace:*",
+    "@maestro/publish": "workspace:*",
+    "@maestro/secrets": "workspace:*",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@maestro/test-kit": "workspace:*",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.23.11",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.0"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "data": {
+    "markPullRequestReadyForReview": {
+      "pullRequest": {
+        "number": 128,
+        "isDraft": false
+      }
+    }
+  }
+}

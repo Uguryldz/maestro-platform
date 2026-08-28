@@ -1,0 +1,24 @@
+{
+ "version": "1.171.0",
+ "results": [],
+ "errors": [
+  {
+   "code": 2,
+   "level": "error",
+   "type": "SemgrepError",
+   "message": "WARNING: unable to find a config; path `/rules/does-not-exist.yaml` does not exist (since you are running in docker, you cannot specify arbitrary paths on the host; they must be mounted into the container)"
+  },
+  {
+   "code": 7,
+   "level": "error",
+   "type": "SemgrepError",
+   "message": "invalid configuration file found (1 configs were invalid)"
+  }
+ ],
+ "paths": {
+  "scanned": []
+ },
+ "engine_requested": "OSS",
+ "skipped_rules": [],
+ "profiling_results": []
+}

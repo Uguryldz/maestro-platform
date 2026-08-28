@@ -1,0 +1,14 @@
+{
+  "self": "https://jira.internal.bank/rest/api/2/issue/10501/comment/45230",
+  "id": "45230",
+  "author": {
+    "self": "https://jira.internal.bank/rest/api/2/user?username=maestro-svc",
+    "name": "maestro-svc",
+    "key": "JIRAUSER11000",
+    "displayName": "Maestro Servis",
+    "active": true
+  },
+  "body": "h2. Analiz hazır\n\nKapsam ve kabul kriterleri aşağıda.",
+  "created": "2026-08-08T13:40:11.000+0300",
+  "updated": "2026-08-08T13:40:11.000+0300"
+}

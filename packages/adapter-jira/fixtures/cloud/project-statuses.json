@@ -1,0 +1,102 @@
+[
+  {
+    "self": "https://uyildiz.atlassian.net/rest/api/3/issuetype/10008",
+    "id": "10008",
+    "name": "Görev",
+    "subtask": false,
+    "statuses": [
+      {
+        "self": "https://uyildiz.atlassian.net/rest/api/3/status/10004",
+        "description": "",
+        "iconUrl": "https://uyildiz.atlassian.net/images/icons/statuses/generic.png",
+        "name": "Yapılacaklar",
+        "id": "10004",
+        "statusCategory": {
+          "self": "https://uyildiz.atlassian.net/rest/api/3/statuscategory/2",
+          "id": 2,
+          "key": "new",
+          "colorName": "blue-gray",
+          "name": "Yapılacaklar"
+        }
+      },
+      {
+        "self": "https://uyildiz.atlassian.net/rest/api/3/status/10005",
+        "description": "",
+        "iconUrl": "https://uyildiz.atlassian.net/images/icons/statuses/generic.png",
+        "name": "Devam Ediyor",
+        "id": "10005",
+        "statusCategory": {
+          "self": "https://uyildiz.atlassian.net/rest/api/3/statuscategory/4",
+          "id": 4,
+          "key": "indeterminate",
+          "colorName": "yellow",
+          "name": "Devam Ediyor"
+        }
+      },
+      {
+        "self": "https://uyildiz.atlassian.net/rest/api/3/status/10007",
+        "description": "",
+        "iconUrl": "https://uyildiz.atlassian.net/images/icons/statuses/generic.png",
+        "name": "İNCELEMEDE",
+        "id": "10007",
+        "statusCategory": {
+          "self": "https://uyildiz.atlassian.net/rest/api/3/statuscategory/4",
+          "id": 4,
+          "key": "indeterminate",
+          "colorName": "yellow",
+          "name": "Devam Ediyor"
+        }
+      },
+      {
+        "self": "https://uyildiz.atlassian.net/rest/api/3/status/10006",
+        "description": "",
+        "iconUrl": "https://uyildiz.atlassian.net/images/icons/statuses/generic.png",
+        "name": "Tamam",
+        "id": "10006",
+        "statusCategory": {
+          "self": "https://uyildiz.atlassian.net/rest/api/3/statuscategory/3",
+          "id": 3,
+          "key": "done",
+          "colorName": "green",
+          "name": "Tamam"
+        }
+      }
+    ]
+  },
+  {
+    "self": "https://uyildiz.atlassian.net/rest/api/3/issuetype/10007",
+    "id": "10007",
+    "name": "Hata",
+    "subtask": false,
+    "statuses": [
+      {
+        "self": "https://uyildiz.atlassian.net/rest/api/3/status/10004",
+        "description": "",
+        "iconUrl": "https://uyildiz.atlassian.net/images/icons/statuses/generic.png",
+        "name": "Yapılacaklar",
+        "id": "10004",
+        "statusCategory": {
+          "self": "https://uyildiz.atlassian.net/rest/api/3/statuscategory/2",
+          "id": 2,
+          "key": "new",
+          "colorName": "blue-gray",
+          "name": "Yapılacaklar"
+        }
+      },
+      {
+        "self": "https://uyildiz.atlassian.net/rest/api/3/status/10006",
+        "description": "",
+        "iconUrl": "https://uyildiz.atlassian.net/images/icons/statuses/generic.png",
+        "name": "Tamam",
+        "id": "10006",
+        "statusCategory": {
+          "self": "https://uyildiz.atlassian.net/rest/api/3/statuscategory/3",
+          "id": 3,
+          "key": "done",
+          "colorName": "green",
+          "name": "Tamam"
+        }
+      }
+    ]
+  }
+]

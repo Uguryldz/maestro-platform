@@ -1,0 +1,2 @@
+Banka kök CA sertifikasını bu klasöre koyun (örn. kurumsal-kok-ca.pem, ldap-ca.pem).
+Compose bu klasörü konteynerlere /etc/maestro olarak salt-okunur mount eder.

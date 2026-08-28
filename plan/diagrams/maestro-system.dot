@@ -1,0 +1,151 @@
+digraph MaestroV2System {
+  rankdir=TB;
+  bgcolor="#F8FAFC";
+  compound=true;
+  newrank=true;
+  splines=spline;
+  nodesep=0.4;
+  ranksep=0.7;
+  fontname="Helvetica";
+  node [fontname="Helvetica", fontsize=10, style="filled,rounded", shape=box, margin="0.24,0.14"];
+  edge [fontname="Helvetica", fontsize=9, color="#64748B"];
+
+  labelloc="t";
+  label=<<FONT POINT-SIZE="24"><B>Maestro — Banka Sürümü Hedef Mimari</B></FONT><BR/><BR/>
+        <FONT POINT-SIZE="12" COLOR="#334155">Jira DC + Azure DevOps · hibrit LLM (cloud + on-prem) · Docker Compose → ileride OpenShift/K8s</FONT><BR/>
+        <FONT POINT-SIZE="10" COLOR="#94A3B8">TASLAK — tartışma için · kaynak: maestro/plan/masterplan.md</FONT>>;
+
+  // ══════════ KURUM İÇİ MEVCUT SİSTEMLER ══════════
+  subgraph cluster_kurum {
+    label="①  KURUM İÇİ MEVCUT SİSTEMLER";
+    style="filled,rounded"; fillcolor="#F1F5F9"; color="#94A3B8"; penwidth=2;
+    fontname="Helvetica-Bold"; fontsize=14; fontcolor="#334155";
+
+    node [shape=folder, fillcolor="#FFFFFF", color="#475569"];
+    jira [label="JIRA DC\nticket · yorum · durum\nonay komutları (/approve)"];
+    ado  [label="AZURE DEVOPS\nRepos · Pipelines\nbranch policy + build validation", penwidth=2.2, color="#0F766E"];
+    ad   [label="AD / LDAP\nkimlik · grup üyeliği\n(SoD doğrulaması)"];
+    siem [label="SIEM\nSplunk / QRadar\naudit export"];
+
+    node [shape=box, fillcolor="#FFFFFF", color="#64748B"];
+    insan [label="İNSANLAR\nPO · Tech Lead · QA · Dev\nJira yorumu + ADO PR review"];
+
+    insan -> jira [style=invis];
+    jira -> ado [style=invis];
+    ado -> ad [style=invis];
+    ad -> siem [style=invis];
+  }
+
+  // ══════════ MAESTRO PLATFORMU ══════════
+  subgraph cluster_platform {
+    label="②  MAESTRO PLATFORMU  —  Docker Compose (ileride OpenShift/K8s)";
+    style="filled,rounded"; fillcolor="#FFFBEB"; color="#F59E0B"; penwidth=3;
+    fontname="Helvetica-Bold"; fontsize=15; fontcolor="#92400E";
+
+    subgraph cluster_apps {
+      label="UYGULAMA KATMANI";
+      style="filled,rounded"; fillcolor="#EFF6FF"; color="#3B82F6"; penwidth=2;
+      fontname="Helvetica-Bold"; fontsize=12; fontcolor="#1E40AF";
+      node [fillcolor="#FFFFFF", color="#2563EB", penwidth=1.8];
+
+      bff [label="API / BFF\nwebhook alıcı (Jira + ADO)\nTEK veri kapısı — hepsi auth'lu\nraw-body HMAC · fail-closed", penwidth=2.4];
+      studio [label="AGENT STUDIO\nNext.js · variant + knowledge + eval\nDB'ye DOĞRUDAN ERİŞMEZ"];
+      worker [label="WORKER HAVUZU\ndüşünen ajanlar (structured output)\n+ orkestrasyon aktiviteleri\n🚫 docker.sock YOK"];
+    }
+
+    temporal [label="TEMPORAL\nSDLC orkestratör\nadım durumu · kapılar · SLA · retry",
+              shape=cylinder, fillcolor="#DCFCE7", color="#16A34A", penwidth=2.6, fontsize=11];
+
+    subgraph cluster_runner {
+      label="YÜRÜTME KATMANI";
+      style="filled,rounded"; fillcolor="#FDF4FF"; color="#A855F7"; penwidth=2.4;
+      fontname="Helvetica-Bold"; fontsize=12; fontcolor="#7E22CE";
+      node [fillcolor="#FFFFFF", color="#9333EA"];
+
+      runner [label="RUNNER SERVİSİ  (YENİ)\nsandbox yaşam döngüsü\nDocker yetkisi YALNIZ burada\nkaynak limitleri · gerçek timeout", penwidth=2.2];
+      sandbox [label="EPHEMERAL SANDBOX\nCLAUDE AGENT SDK oturumu\nkod yazar · testi GERÇEKTEN koşar\nbranch push · sonra silinir\negress: yalnız proxy", style="filled,dashed", penwidth=2];
+    }
+
+    llmgw [label="LLM GATEWAY  (LlmPort)\npolitika yönlendirme · rate limit\nbütçe (tek kaynak) · maliyet · çağrı logu\nprompt cache", fillcolor="#FEF3C7", color="#D97706", penwidth=2.4];
+
+    proxy [label="EGRESS PROXY\nallow-list · tüm dış çıkış TEK nokta\nloglu", fillcolor="#FEE2E2", color="#DC2626", penwidth=2.2];
+
+    subgraph cluster_data {
+      label="VERİ KATMANI";
+      style="filled,rounded"; fillcolor="#ECFDF5"; color="#10B981"; penwidth=2;
+      fontname="Helvetica-Bold"; fontsize=12; fontcolor="#065F46";
+      node [shape=cylinder, fillcolor="#FFFFFF", color="#059669", fontsize=9];
+
+      pg    [label="PostgreSQL\nworkflow · StepEvent\nvariant · audit"];
+      redis [label="Redis\ncache · semafor"];
+      minio [label="STORAGE (StoragePort)\nS3-uyumlu / PG-BLOB\nknowledge · kanıt paketleri"];
+      vault [label="VAULT (GERÇEK)\nsecret · kısa ömürlü\ngit kimlikleri", color="#DC2626", penwidth=2];
+    }
+  }
+
+  // ══════════ LLM ARKA UÇLARI ══════════
+  subgraph cluster_llm {
+    label="③  LLM ARKA UÇLARI — hibrit";
+    style="filled,rounded"; fillcolor="#FEF2F2"; color="#EF4444"; penwidth=2;
+    fontname="Helvetica-Bold"; fontsize=13; fontcolor="#991B1B";
+    node [fillcolor="#FFFFFF", color="#DC2626"];
+
+    claude [label="CLOUD — CLAUDE\nAnthropic API / Bedrock / Vertex\nPII maskeli + ZDR sözleşmesi", penwidth=2];
+    onprem [label="ON-PREM MODEL\nvLLM + açık kodlama modeli\nGPU · hassas veri sınıfı\nkurum dışına çıkış YOK", penwidth=2];
+    claude -> onprem [style=invis];
+  }
+
+  // ══════════ KENARLAR ══════════
+
+  // Webhook girişleri (turuncu)
+  edge [color="#EA580C", penwidth=2.4, fontcolor="#C2410C"];
+  insan -> jira [label="  ticket · /approve", penwidth=1.6];
+  jira -> bff [label="  ① webhook\n  HMAC + fail-closed", weight=6];
+  ado  -> bff [label="  ① Service Hooks\n  PR · thread · build.complete", weight=6];
+
+  // Çekirdek akış (yeşil)
+  edge [color="#059669", penwidth=2.4, fontcolor="#047857"];
+  bff -> temporal [label="  ② start / signal", weight=8];
+  temporal -> worker [label="  ③ görev kuyruğu", weight=8];
+
+  // Yürütme (mor)
+  edge [color="#9333EA", penwidth=2.2, fontcolor="#7E22CE"];
+  worker -> runner [label="  ④ dar API:\n  'oturum başlat'"];
+  runner -> sandbox [label="  ⑤ yarat / izle / öldür"];
+
+  // LLM yolu (kırmızı/amber)
+  edge [color="#D97706", penwidth=2.2, fontcolor="#B45309"];
+  worker -> llmgw [label="  düşünen çağrılar"];
+  sandbox -> llmgw [label="  Agent SDK çağrıları"];
+  edge [color="#DC2626", penwidth=2, fontcolor="#B91C1C"];
+  llmgw -> proxy [label="  cloud sınıfı"];
+  proxy -> claude [label="  tek dış çıkış"];
+  llmgw -> onprem [label="  gizli veri sınıfı", style=dashed];
+
+  // SCM etkileşimi (teal)
+  edge [color="#0F766E", penwidth=2, fontcolor="#115E59", style=solid];
+  sandbox -> ado [label="  branch push\n  (kısa ömürlü kimlik)"];
+  worker -> ado [label="  PR aç · thread"];
+  worker -> jira [label="  yorum (ADF) · durum"];
+
+  // Kimlik & denetim (gri/kırmızı)
+  edge [color="#64748B", penwidth=1.6, style=dashed, fontcolor="#475569"];
+  bff -> ad [label="  grup üyeliği\n  SoD kontrolü"];
+  worker -> siem [label="  audit export", color="#991B1B", fontcolor="#991B1B"];
+
+  // Studio & veri
+  edge [color="#2563EB", penwidth=1.8, style=solid, fontcolor="#1D4ED8"];
+  studio -> bff [label="  REST (auth'lu)"];
+  edge [color="#CA8A04", penwidth=1.6, fontcolor="#A16207"];
+  temporal -> pg;
+  worker -> pg [label="  StepEvent\n  (event-sourced)"];
+  worker -> minio [label="  kanıt paketi"];
+  runner -> redis [label="  semafor", style=dashed];
+  edge [color="#DC2626", penwidth=1.6, style=dashed, fontcolor="#B91C1C"];
+  worker -> vault [label="  secret"];
+  runner -> vault [label="  kısa ömürlü\n  git kimliği"];
+
+  { rank=same; bff; studio; worker; }
+  { rank=same; runner; llmgw; }
+  { rank=same; pg; redis; minio; vault; }
+}

@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maestro — canlı Jira pilotu</title>
+<style>
+:root{
+  --bg:#f6f7fb; --panel:#fff; --panel2:#f1f3f9; --border:#e2e6f0; --border2:#cdd4e4;
+  --text:#0f172a; --mini:#64748b; --faint:#94a3b8;
+  --blue:#2563eb; --green:#16a34a; --amber:#d97706; --red:#dc2626; --teal:#0d9488;
+  --term:#0b1120; --termtext:#cbd5e1;
+  --j-blue:#0052CC; --j-blue-d:#0747A6; --j-text:#172B4D; --j-sub:#6B778C;
+  --j-border:#DFE1E6; --j-bg:#F4F5F7; --j-hover:#EBECF0; --j-green:#00875A;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:18px}
+h1{font-size:19px;margin:0}
+.sub{color:var(--mini);font-size:13px;margin-top:3px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px}
+.bd{padding:12px 14px}
+.mini{font-size:12px;color:var(--mini)}
+.honest{border-color:#34d399;background:#ecfdf5;margin:14px 0}
+.honest b{color:#065f46}
+.top{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.spacer{flex:1}
+.btn{border:1px solid var(--border2);background:var(--panel);color:var(--text);border-radius:8px;padding:8px 14px;font:inherit;cursor:pointer}
+.dlbtn{display:inline-block;border:1px solid var(--border2);background:var(--panel2);color:var(--text);border-radius:8px;padding:6px 12px;font-size:13px;text-decoration:none}
+.dlbtn:hover{border-color:#2563eb}
+.btn:hover{background:var(--panel2)}
+.btn.p{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;align-items:start}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}}
+.ph{padding:9px 13px;border-bottom:1px solid var(--border);font-weight:600;display:flex;gap:8px;align-items:center}
+.pane{display:flex;flex-direction:column;min-height:560px}
+.term{background:var(--term);color:var(--termtext);border-radius:0 0 10px 10px;padding:11px;font:12.5px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;overflow:auto;flex:1;max-height:44vh}
+.l-dim{color:#64748b}.l-info{color:#93c5fd}.l-ok{color:#6ee7b7}.l-warn{color:#fcd34d}.l-err{color:#fca5a5}
+.steps{padding:10px 12px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid var(--border)}
+.step{display:flex;gap:9px;align-items:flex-start;padding:6px 8px;border-radius:7px;background:var(--panel2)}
+.step .dot{width:18px;height:18px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-size:11px;background:#cbd5e1;color:#fff;margin-top:2px}
+.step.calisiyor .dot{background:var(--blue)}
+.step.tamam .dot{background:var(--green)}
+.step.onay .dot{background:var(--amber)}
+.step.hata .dot{background:var(--red)}
+.step.calisiyor{background:#eff6ff}
+.step.onay{background:#fffbeb}
+.step.hata{background:#fef2f2}
+.step .t{font-weight:600;font-size:13px}
+.step .h{font-size:12px;color:var(--mini)}
+.step .n{font-size:12px;color:#334155;margin-top:2px}
+.tag{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11.5px;background:#e2e8f0;color:#334155}
+.tag.b{background:#dbeafe;color:#1e40af}.tag.g{background:#dcfce7;color:#166534}
+.tag.a{background:#fef3c7;color:#92400e}.tag.r{background:#fee2e2;color:#991b1b}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:9px 13px;min-width:132px}
+.kpi .l{font-size:11.5px;color:var(--mini)}
+.kpi .v{font-size:16px;font-weight:700;margin-top:2px}
+code{background:var(--panel2);border-radius:5px;padding:1px 5px;font-size:12.5px}
+.err{color:var(--red);font-weight:600}
+
+/* --------------------------------------------------------------- settings */
+.set-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:900px){.set-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.set-grid{grid-template-columns:1fr}}
+.set-f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mini)}
+.set-f input,.set-f select{font:inherit;font-size:13px;color:var(--text);background:var(--panel);border:1px solid var(--border2);border-radius:7px;padding:7px 9px}
+.set-f input:focus,.set-f select:focus{outline:none;border-color:var(--blue)}
+.aud-filters{display:flex;flex-wrap:wrap;gap:10px}
+.aud-table{width:100%;border-collapse:collapse;font-size:13px}
+.aud-table th,.aud-table td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border2);white-space:nowrap}
+.aud-table th{color:var(--mini);font-weight:600;position:sticky;top:0;background:var(--panel)}
+.aud-table td:last-child{white-space:normal}
+.set-ok{color:var(--green);font-weight:600}
+.set-bad{color:var(--red);font-weight:600}
+
+/* --------------------------------------------------------------- Jira (real) */
+.jira-pane{border-radius:3px;border-color:var(--j-border);color:var(--j-text)}
+.jbar{display:flex;align-items:center;gap:6px;padding:8px 14px;border-bottom:1px solid var(--j-border);background:var(--j-bg);border-radius:3px 3px 0 0;font-size:12px}
+.jproj{width:20px;height:20px;border-radius:3px;background:var(--j-blue);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700;letter-spacing:.3px}
+.jcrumb{color:var(--j-blue);text-decoration:none}
+.jcrumb:hover{text-decoration:underline}
+.jlive{color:#fff;background:var(--j-green);border-radius:3px;padding:1px 7px;font-size:10px;font-weight:700;letter-spacing:.4px}
+.jscroll{flex:1;overflow:auto;max-height:70vh;padding:16px 18px 18px;background:#fff;border-radius:0 0 3px 3px}
+.jsum{font-size:20px;line-height:1.25;font-weight:500;color:var(--j-text);margin:2px 0 14px}
+.jmod{margin-bottom:16px}
+.jmodh{font-size:13px;font-weight:600;color:var(--j-text);margin-bottom:8px}
+.tk{border:1px solid var(--j-border);border-radius:6px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:center;cursor:pointer;background:#fff}
+.tk:hover{background:var(--j-bg)}
+.tk.sel{border-color:var(--j-blue);box-shadow:0 0 0 1px var(--j-blue)}
+.tk .k{font-weight:700;color:var(--j-blue);font-size:13px;min-width:64px}
+.tk .s{flex:1;min-width:0;color:var(--j-text);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk .st{font-size:11px;color:var(--j-sub);background:var(--j-hover);border-radius:3px;padding:1px 7px}
+.gate{border:1px solid #ffd591;background:#fffaf0;border-radius:6px;padding:12px 14px;margin-bottom:12px}
+.gate b{color:#92400e}
+.gate a{color:var(--j-blue);font-weight:600}
+.jbtn{border:none;border-radius:3px;padding:7px 14px;font:inherit;font-size:14px;cursor:pointer;background:var(--j-blue);color:#fff}
+.jbtn:hover{background:#0065FF}
+.jbtn:disabled{background:var(--j-hover);color:#A5ADBA;cursor:not-allowed}
+.jempty{color:var(--j-sub);font-size:13px;padding:6px 0}
+.linkbig{display:inline-block;margin-top:6px;color:var(--j-blue);font-weight:600;text-decoration:none}
+.linkbig:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>🎯 Maestro — canlı Jira pilotu</h1>
+      <div class="sub">Bu, Maestro'nun <b>gerçek bir Jira sitesine</b> karşı ilk uçtan uca koşusudur. Jira GERÇEK; Azure DevOps sahtedir.</div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <div class="card honest"><div class="bd">
+    <b>Dürüstlük notu:</b> <b>Jira gerçektir</b> — <span id="site">…</span> (proje OPS). Maestro'nun yorumları, etiketleri ve onay yoklaması
+    doğrudan bu siteye gider. <b>Azure DevOps sahtedir</b> (yerel taklit). Model, kişisel veri maskeleme ve denetim izi gerçektir.
+    Onaylar <b>gerçek Jira'ya <code>/approve</code> yorumu</b> yazılarak verilir — burada bir kutu yok.
+    Bir adım patlarsa ekranda kırmızı görünür — başarı taklit edilmez.
+  </div></div>
+
+  <div class="card settings-card" style="margin:14px 0">
+    <div class="ph">⚙ Ayarlar <span class="mini" style="font-weight:400">— env yerine buradan (çalışma sürerken kilitli)</span>
+      <span class="spacer"></span>
+      <button class="btn" id="set-toggle" type="button">Göster</button>
+    </div>
+    <div class="bd" id="set-body" style="display:none">
+      <div class="mini" style="margin-bottom:12px">Bu altı değer çalışma anında düzenlenir; bir sonraki koşuda/yoklamada geçerli olur. Jetonlar ve sabit adresler burada değildir.</div>
+      <div class="set-grid">
+        <label class="set-f"><span>Onaylayan grup</span><input id="s-approverGroup" type="text" autocomplete="off"></label>
+        <label class="set-f"><span>Model</span><input id="s-model" type="text" autocomplete="off"></label>
+        <label class="set-f"><span>Komut yoklama (ms)</span><input id="s-commandPollMs" type="number" min="1000" max="120000" step="500"></label>
+        <label class="set-f"><span>Keşif yoklama (ms)</span><input id="s-discoveryPollMs" type="number" min="1000" max="120000" step="500"></label>
+        <label class="set-f"><span>Veri sınıfı</span>
+          <select id="s-dataClass">
+            <option value="acik">acik</option>
+            <option value="dahili">dahili</option>
+            <option value="gizli">gizli</option>
+          </select>
+        </label>
+        <label class="set-f"><span>Operatör hesabı</span><input id="s-operatorAccount" type="text" autocomplete="off"></label>
+        <label class="set-f"><span>Sandbox kökü (boş = geçici)</span><input id="s-sandboxRoot" type="text" autocomplete="off" placeholder="/kalici/sandbox/koku"></label>
+      </div>
+      <label class="set-f" style="flex-direction:row;align-items:center;gap:8px;margin-top:10px">
+        <input id="s-autoMerge" type="checkbox">
+        <span>Otomatik birleştirme (yalnız CI yeşil + onaylıysa; <b>kapalıyken merge insana bırakılır</b>)</span>
+      </label>
+      <label class="set-f" style="flex-direction:row;align-items:center;gap:8px;margin-top:10px">
+        <input id="s-autoStart" type="checkbox">
+        <span>Otomatik başlatma (dinleme kuralıyla sınıflanabilen keşfedilen ticket'lar kendiliğinden başlar; <b>kural eşleşmeyen ticket elle başlatılır</b>)</span>
+      </label>
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+        <button class="btn p" id="set-save" type="button">Kaydet</button>
+        <span class="mini" id="set-msg"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="l">Ticket</div><div class="v" id="k-ticket">—</div></div>
+    <div class="kpi"><div class="l">Model çağrısı</div><div class="v" id="k-calls">0</div></div>
+    <div class="kpi"><div class="l">Token</div><div class="v" id="k-tokens">0</div></div>
+    <div class="kpi"><div class="l">Maskelenen alan</div><div class="v" id="k-masked">0</div></div>
+    <div class="kpi"><div class="l">Denetim kaydı</div><div class="v" id="k-audit">0</div></div>
+  </div>
+
+  <div class="card docs" id="docs-card" style="margin-bottom:14px;display:none"><div class="bd">
+    <b>📄 Analiz belgesi hazır</b> — model analizini gerçek dosya olarak indirin (aynı analiz, kurumsal biçimde):
+    <span style="display:inline-flex;gap:8px;margin-left:8px">
+      <a class="dlbtn" id="dl-pdf" href="/api/doc/pdf">📄 Analizi PDF indir</a>
+      <a class="dlbtn" id="dl-docx" href="/api/doc/docx">📝 Word indir</a>
+    </span>
+  </div></div>
+
+  <div class="card" id="audit-card" style="margin-bottom:14px"><div class="bd">
+    <div class="ph" style="cursor:pointer" id="audit-toggle">🛡️ Denetim raporu (regülatör) <span class="spacer"></span><span class="mini">tarih / aktör / aksiyon süz, CSV indir</span></div>
+    <div id="audit-body" style="display:none;margin-top:10px">
+      <div class="aud-filters">
+        <label class="set-f"><span>Başlangıç</span><input id="a-from" type="date"></label>
+        <label class="set-f"><span>Bitiş</span><input id="a-to" type="date"></label>
+        <label class="set-f"><span>Aktör</span><input id="a-actor" type="text" autocomplete="off" placeholder="ör. ayse@corp"></label>
+        <label class="set-f"><span>Aksiyon</span><input id="a-action" type="text" autocomplete="off" placeholder="ör. GATE_APPROVE"></label>
+        <label class="set-f"><span>Ara</span><input id="a-q" type="text" autocomplete="off" placeholder="konu/aktör/aksiyon"></label>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <button class="btn p" id="a-fetch" type="button">Getir</button>
+        <a class="dlbtn" id="a-csv" href="/api/audit.csv">⬇ CSV indir</a>
+        <span class="mini" id="a-count">—</span>
+        <span class="spacer"></span>
+        <button class="btn" id="a-prev" type="button">‹ Önceki</button>
+        <button class="btn" id="a-next" type="button">Sonraki ›</button>
+      </div>
+      <div class="aud-scroll" style="margin-top:10px;max-height:320px;overflow:auto">
+        <table class="aud-table"><thead><tr><th>#</th><th>Tarih</th><th>Aktör</th><th>Aksiyon</th><th>Konu</th></tr></thead><tbody id="a-rows"><tr><td colspan="5" class="mini">“Getir” ile denetim kayıtlarını listeleyin.</td></tr></tbody></table>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="grid">
+    <div class="card pane jira-pane">
+      <div class="jbar">
+        <span class="jproj">OPS</span>
+        <a class="jcrumb" id="site-link" href="#" target="_blank" rel="noreferrer">Jira Cloud</a>
+        <span class="spacer"></span>
+        <span class="jlive">CANLI SITE</span>
+      </div>
+      <div class="jscroll" id="jira">
+        <div class="jempty">Yükleniyor…</div>
+      </div>
+    </div>
+
+    <div class="card pane">
+      <div class="ph">⚙ Maestro'nun iç işleyişi <span class="spacer"></span><span class="mini" id="run">—</span></div>
+      <div class="steps" id="steps"></div>
+      <div class="term" id="log"><div class="l-dim"># bekleniyor…</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px"><div class="bd mini" id="footer">
+    Sol taraf gerçek Jira'dır: Maestro yorumları oraya yazar, onayı oradaki yorumları <b>yoklayarak</b> alır
+    (Atlassian Cloud yerel makineye webhook gönderemez). Sağ taraf Maestro'nun adımlarıdır — her adım gerçek paketleri çağırır.
+  </div></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let STATE = null;
+let PICKED = null;
+
+function browseUrl(state, key) {
+  return `${state.jiraSite.replace(/\/+$/, "")}/browse/${key}`;
+}
+
+function renderSteps(state) {
+  $("steps").innerHTML = state.steps.map((s) => `
+    <div class="step ${s.state}">
+      <div class="dot">${s.state === "tamam" ? "✓" : s.state === "hata" ? "!" : s.state === "onay" ? "⏸" : s.id}</div>
+      <div>
+        <div class="t">${esc(s.title)} ${s.state === "onay" ? '<span class="tag a">onay bekliyor</span>' : s.state === "calisiyor" ? '<span class="tag b">çalışıyor</span>' : s.state === "hata" ? '<span class="tag r">hata</span>' : ""}</div>
+        <div class="h">${esc(s.hint)}</div>
+        ${s.notes.map((n) => `<div class="n">· ${esc(n)}</div>`).join("")}
+      </div>
+    </div>`).join("");
+}
+
+function renderLog(state) {
+  const box = $("log");
+  box.innerHTML = state.log.map((l) => `<div class="l-${l.level}">${esc(l.text)}</div>`).join("")
+    || '<div class="l-dim"># bekleniyor…</div>';
+  box.scrollTop = box.scrollHeight;
+}
+
+/** The left pane: picker before a run, gate instructions + link during one. */
+function renderJira(state) {
+  $("site").textContent = state.jiraSite;
+  $("site-link").textContent = state.jiraSite;
+  $("site-link").href = state.jiraSite;
+
+  const box = $("jira");
+  const gateOpen = state.awaitingGate !== null;
+  const link = state.ticketKey ? browseUrl(state, state.ticketKey) : null;
+
+  // Running (or finished): show the ticket, a deep link, and the gate note.
+  if (state.ticketKey) {
+    const gateNote = gateOpen ? `
+      <div class="gate">
+        <b>⏸ İnsan kapısı açık — ${esc(state.awaitingGate === "3" ? "analiz onayı" : "PR onayı")}.</b><br>
+        Onaylamak için <a href="${esc(link)}" target="_blank" rel="noreferrer">${esc(state.ticketKey)}</a> ticket'ına
+        <b>gerçek Jira'da</b> <code>/approve</code> yorumu yazın (veya <code>/reject &lt;sebep&gt;</code>).
+        Maestro yorumları saniyede bir yoklar. Onaylayan, <code>${esc(state.approverGroup)}</code> grubunda olmalıdır.
+      </div>` : "";
+    box.innerHTML = `
+      <div class="jsum">${esc(state.ticketKey)}</div>
+      ${gateNote}
+      <div class="jmod">
+        <a class="linkbig" href="${esc(link)}" target="_blank" rel="noreferrer">↗ Bu ticket'ı gerçek Jira'da aç</a>
+      </div>
+      <div class="jmini mini">${state.finished ? "✓ akış tamamlandı" : state.running ? "akış sürüyor…" : ""}
+        ${state.failure ? `<span class="err">✗ ${esc(state.failure)}</span>` : ""}</div>`;
+    return;
+  }
+
+  // Idle: the ticket picker over discovered maestro-labelled OPS tickets.
+  const rows = state.discovered.length === 0
+    ? '<div class="jempty">Henüz <code>maestro</code> etiketli açık OPS ticket bulunamadı. Gerçek Jira\'da bir ticket\'a <code>maestro</code> etiketi ekleyin; keşif yoklaması birkaç saniyede yakalar.</div>'
+    : state.discovered.map((t) => `
+        <div class="tk ${PICKED === t.key ? "sel" : ""}" data-key="${esc(t.key)}">
+          <span class="k">${esc(t.key)}</span>
+          <span class="s" title="${esc(t.summary)}">${esc(t.summary)}</span>
+          ${t.status ? `<span class="st">${esc(t.status)}</span>` : ""}
+        </div>`).join("");
+
+  box.innerHTML = `
+    <div class="jmodh">▶ Ticket seç ve başlat</div>
+    <div class="mini" style="margin-bottom:10px">Gerçek OPS projesinde <code>maestro</code> etiketli ticket'lar (en yeni önce):</div>
+    ${rows}
+    <div style="margin-top:12px">
+      <button class="jbtn" id="go" ${PICKED ? "" : "disabled"}>▶ Seçili ticket ile başlat</button>
+    </div>`;
+
+  for (const el of box.querySelectorAll(".tk")) {
+    el.onclick = () => { PICKED = el.dataset.key; renderJira(STATE); };
+  }
+  const go = $("go");
+  if (go) go.onclick = async () => {
+    if (!PICKED) return;
+    go.disabled = true;
+    // The selected discovery row's STATUS travels as a hint so a status
+    // listening rule can classify the flow (the ticket read has no status).
+    const picked = (STATE?.discovered ?? []).find((t) => t.key === PICKED);
+    await fetch("/api/start", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ticketKey: PICKED, ...(picked && picked.status ? { status: picked.status } : {}) }),
+    });
+  };
+}
+
+// Once the analysis step has produced the files, reveal the two download
+// buttons. The links carry the ticket key as a nice filename hint; the actual
+// attachment name is set by the server's Content-Disposition header.
+function renderDocs(state) {
+  const card = $("docs-card");
+  card.style.display = state.docsReady ? "block" : "none";
+  const key = state.ticketKey ? String(state.ticketKey) : null;
+  $("dl-pdf").setAttribute("download", key ? `${key}-analiz.pdf` : "analiz.pdf");
+  $("dl-docx").setAttribute("download", key ? `${key}-analiz.docx` : "analiz.docx");
+}
+
+function renderState(state) {
+  STATE = state;
+  $("k-ticket").textContent = state.ticketKey ?? "—";
+  $("k-calls").textContent = state.llmCalls;
+  $("k-tokens").textContent = state.tokens;
+  $("k-masked").textContent = state.maskedFields;
+  $("k-audit").textContent = state.audit.records + (state.audit.verified === true ? " ✓" : state.audit.verified === false ? " ✗" : "");
+  $("run").textContent = state.runId ? "run " + state.runId : "—";
+  renderSteps(state);
+  renderLog(state);
+  renderJira(state);
+  renderDocs(state);
+  $("footer").innerHTML = state.failure
+    ? `<span class="err">✗ Akış durdu: ${esc(state.failure)}</span> — bu ekranda hata gizlenmez.`
+    : "Sol taraf gerçek Jira'dır: Maestro yorumları oraya yazar, onayı oradaki yorumları <b>yoklayarak</b> alır. Sağ taraf Maestro'nun adımlarıdır.";
+}
+
+// ---------------------------------------------------------------- settings
+// The ⚙ Ayarlar panel: load the current values, let them be edited, POST on
+// Kaydet. The server validates and refuses a change while a run is in progress
+// (409), so the button is disabled and a note is shown whenever a run is live.
+const SET_FIELDS = ["approverGroup", "model", "commandPollMs", "discoveryPollMs", "dataClass", "operatorAccount", "sandboxRoot"];
+
+function fillSettings(s) {
+  for (const key of SET_FIELDS) {
+    const el = $("s-" + key);
+    if (el && document.activeElement !== el) el.value = s[key];
+  }
+  const am = $("s-autoMerge");
+  if (am && document.activeElement !== am) am.checked = !!s.autoMerge;
+  const as = $("s-autoStart");
+  if (as && document.activeElement !== as) as.checked = !!s.autoStart;
+}
+
+async function loadSettings() {
+  try {
+    const s = await (await fetch("/api/settings")).json();
+    fillSettings(s);
+  } catch { /* leave placeholders; the panel is a convenience */ }
+}
+
+function readSettingsForm() {
+  return {
+    approverGroup: $("s-approverGroup").value.trim(),
+    model: $("s-model").value.trim(),
+    commandPollMs: Number($("s-commandPollMs").value),
+    discoveryPollMs: Number($("s-discoveryPollMs").value),
+    dataClass: $("s-dataClass").value,
+    operatorAccount: $("s-operatorAccount").value.trim(),
+    sandboxRoot: $("s-sandboxRoot").value.trim(),
+    autoMerge: $("s-autoMerge").checked,
+    autoStart: $("s-autoStart").checked,
+  };
+}
+
+function setMsg(text, ok) {
+  const el = $("set-msg");
+  el.textContent = text;
+  el.className = "mini " + (ok === true ? "set-ok" : ok === false ? "set-bad" : "");
+}
+
+$("set-toggle").onclick = () => {
+  const body = $("set-body");
+  const open = body.style.display === "none";
+  body.style.display = open ? "block" : "none";
+  $("set-toggle").textContent = open ? "Gizle" : "Göster";
+  if (open) loadSettings();
+};
+
+$("set-save").onclick = async () => {
+  if (STATE && STATE.running) { setMsg("akış sürerken değiştirilemez", false); return; }
+  setMsg("kaydediliyor…", null);
+  const res = await fetch("/api/settings", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(readSettingsForm()),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) { fillSettings(data); setMsg("✓ kaydedildi", true); }
+  else setMsg("✗ " + (data.error || ("hata " + res.status)), false);
+};
+
+// Reflect run state: lock the Kaydet button while a run is live so the mid-run
+// guard is visible in the UI, not only enforced by the server.
+function syncSettingsLock(state) {
+  const btn = $("set-save");
+  if (!btn) return;
+  btn.disabled = !!state.running;
+  if (state.running && $("set-body").style.display !== "none" && !$("set-msg").textContent) {
+    setMsg("akış sürüyor — ayarlar kilitli", false);
+  }
+}
+
+// ── B13 denetim raporu (regülatör): filtrele + listele + CSV indir ──────────
+let auditOffset = 0;
+const AUDIT_LIMIT = 50;
+
+function auditQuery(withPaging) {
+  const p = new URLSearchParams();
+  const from = $("a-from").value;
+  const to = $("a-to").value;
+  // <input type=date> gives YYYY-MM-DD; widen to the full day in ISO so the
+  // window is inclusive of everything that happened on the chosen dates.
+  if (from) p.set("from", from + "T00:00:00.000Z");
+  if (to) p.set("to", to + "T23:59:59.999Z");
+  if ($("a-actor").value.trim()) p.set("actor", $("a-actor").value.trim());
+  if ($("a-action").value.trim()) p.set("action", $("a-action").value.trim());
+  if ($("a-q").value.trim()) p.set("q", $("a-q").value.trim());
+  if (withPaging) { p.set("offset", String(auditOffset)); p.set("limit", String(AUDIT_LIMIT)); }
+  return p;
+}
+
+// esc yukarıda tanımlı (satır ~228) — ikinci bildirim sayfayı çökertiyordu (BULGU-2).
+
+async function loadAudit() {
+  // Keep the CSV link in sync with the live filters (no paging: whole window).
+  $("a-csv").href = "/api/audit.csv?" + auditQuery(false).toString();
+  let page;
+  try {
+    page = await (await fetch("/api/audit?" + auditQuery(true).toString())).json();
+  } catch (e) {
+    $("a-count").textContent = "denetim okunamadı";
+    return;
+  }
+  const rows = page.events || [];
+  const body = $("a-rows");
+  if (rows.length === 0) {
+    body.innerHTML = '<tr><td colspan="5" class="mini">Bu süzgeçle kayıt yok.</td></tr>';
+  } else {
+    body.innerHTML = rows.map((e) =>
+      "<tr><td>" + e.seq + "</td><td>" + esc(e.at.replace("T", " ").slice(0, 19)) +
+      "</td><td>" + esc(e.actor) + "</td><td>" + esc(e.action) + "</td><td>" + esc(e.subject) + "</td></tr>"
+    ).join("");
+  }
+  const shownFrom = page.total === 0 ? 0 : page.offset + 1;
+  const shownTo = Math.min(page.offset + rows.length, page.total);
+  $("a-count").textContent = shownFrom + "–" + shownTo + " / " + page.total + " kayıt";
+  $("a-prev").disabled = page.offset <= 0;
+  $("a-next").disabled = page.offset + rows.length >= page.total;
+}
+
+$("audit-toggle").addEventListener("click", () => {
+  const b = $("audit-body");
+  const open = b.style.display === "none";
+  b.style.display = open ? "block" : "none";
+  if (open) { auditOffset = 0; loadAudit(); }
+});
+$("a-fetch").addEventListener("click", () => { auditOffset = 0; loadAudit(); });
+$("a-prev").addEventListener("click", () => { auditOffset = Math.max(0, auditOffset - AUDIT_LIMIT); loadAudit(); });
+$("a-next").addEventListener("click", () => { auditOffset += AUDIT_LIMIT; loadAudit(); });
+
+const events = new EventSource("/api/events");
+events.onmessage = (event) => { const s = JSON.parse(event.data); renderState(s); syncSettingsLock(s); };
+fetch("/api/state").then((r) => r.json()).then((s) => { renderState(s); syncSettingsLock(s); });
+loadSettings();
+</script>
+</body>
+</html>

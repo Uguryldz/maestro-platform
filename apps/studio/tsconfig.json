@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "paths": {
+      // Mirrors the Vite alias in vite.config.ts: import the catalog helper
+      // directly so the Node-only env.ts in the @maestro/config barrel never
+      // reaches the browser bundle.
+      "@maestro/config/i18n": ["../../packages/config/src/i18n.ts"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "test/**/*.ts",
+    "test/**/*.tsx",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
+}

@@ -1,0 +1,63 @@
+digraph MaestroV2Ado {
+  rankdir=TB;
+  bgcolor="white";
+  compound=true;
+  splines=spline;
+  nodesep=0.5;
+  ranksep=0.65;
+  fontname="Helvetica";
+  node [fontname="Helvetica", fontsize=12, shape=box, style=filled,
+        fillcolor="white", color="#1E293B", penwidth=2, margin="0.3,0.2"];
+  edge [fontname="Helvetica", fontsize=11, color="#1E293B", penwidth=1.6];
+
+  labelloc="t";
+  label=<<FONT POINT-SIZE="22"><B>Azure DevOps Entegrasyonu — ScmPort + CiPort Kapsamı</B></FONT><BR/>
+        <FONT POINT-SIZE="12" COLOR="#64748B">CI'ı biz tetiklemeyiz: ADO branch policy tetikler, biz Service Hook ile dinleriz</FONT><BR/>
+        <FONT POINT-SIZE="10" COLOR="#94A3B8">TASLAK · maestro/plan/masterplan.md §3.2 · Server / Services ikisi de desteklenir (açık soru)</FONT>>;
+
+  // Maestro tarafı
+  subgraph cluster_ork {
+    label="  MAESTRO  ";
+    style="filled,rounded"; fillcolor="#EFF6FF"; color="#3B82F6"; penwidth=2.4;
+    fontname="Helvetica-Bold"; fontsize=13; fontcolor="#1E40AF";
+    node [fillcolor="#FFFFFF", color="#2563EB", fontsize=11];
+
+    routing [label="REPO EŞLEME  (RoutingRule)\nJira project/component\n→ ADO project + repo + pipeline\n(v1'in hardcoded 'repo' placeholder'ı kapandı)", penwidth=2.2];
+    scmport [label="ScmPort — ADO ADAPTÖRÜ\nREST 7.x (Server 2022+ / Services)\nbranch aç · PR aç/güncelle\nthread oku/yaz · status bildir", penwidth=2.4];
+    ciport [label="CiPort — PASİF DİNLEYİCİ\nbuild.complete Service Hook\n→ Temporal ci-result sinyali", penwidth=2.2];
+    bff [label="BFF webhook alıcı\nHMAC/secret başlık + IP kısıtı\nfail-closed · korelasyon = Jira KEY", penwidth=2.2];
+  }
+
+  // ADO tarafı
+  subgraph cluster_ado {
+    label="  AZURE DEVOPS  ";
+    style="filled,rounded"; fillcolor="#F0FDFA"; color="#0F766E"; penwidth=2.4;
+    fontname="Helvetica-Bold"; fontsize=13; fontcolor="#115E59";
+    node [fillcolor="#FFFFFF", color="#0F766E", fontsize=11];
+
+    repo [label="REPOS\nbranch: feature/JIRA-123\ncommit: '[AI] ...' + attribution", penwidth=2.2];
+    prx [label="PULL REQUEST\ndraft → active\naçıklama: analiz özeti + kanıt paketi linki\nPR thread'leri = yorum döngüsü (12b)", penwidth=2.4];
+    policy [label="BRANCH POLICY  (bankanın kendi kontrolü)\nmin 1 İNSAN reviewer (SoD)\nforce-push KAPALI\nbuild validation ZORUNLU", fillcolor="#FEF3C7", color="#D97706", penwidth=2.4];
+    pipe [label="PIPELINES\nbuild validation koşumu\nkurumun kendi pipeline tanımı", penwidth=2.2];
+    hooks [label="SERVICE HOOKS\ngit.pullrequest.created / updated\nms.vss-code.git-pullrequest-comment-event\nbuild.complete", penwidth=2.2];
+  }
+
+  // Kimlik
+  kimlik [label="AI SERVİS HESABI\nServer: PAT (dar scope: Code R/W, PR R/W)\nServices: Entra ID service principal\nVault'tan kısa ömürlü kullanım\nSoD: onaylayan hesaptan AYRI",
+          fillcolor="#FEE2E2", color="#DC2626", penwidth=2.4, fontsize=11];
+
+  // Akış
+  routing -> scmport [penwidth=1.8, color="#2563EB", label="  hangi repo?  "];
+  scmport -> repo [penwidth=2.2, color="#0F766E", label="  branch + push\l  (sandbox'tan)\l"];
+  scmport -> prx  [penwidth=2.2, color="#0F766E", label="  PR aç · thread yanıtla  "];
+  prx -> policy [penwidth=1.8, color="#D97706", label="  policy uygulanır  "];
+  policy -> pipe [penwidth=1.8, color="#D97706", label="  build validation\l  OTOMATİK tetik\l"];
+  pipe -> hooks [penwidth=1.8, color="#0F766E"];
+  prx -> hooks [penwidth=1.6, color="#0F766E", style=dashed, label="  PR olayları  "];
+  hooks -> bff [penwidth=2.4, color="#EA580C", fontcolor="#C2410C", label="  webhook\l  (CI sonucu · PR yorum ·\l  insan PR'ı açıldı sinyali)\l"];
+  bff -> ciport [penwidth=1.8, color="#2563EB", style=dashed, label="  normalize et\l  → Temporal sinyal\l"];
+  kimlik -> scmport [penwidth=1.8, color="#DC2626", style=dashed, label="  kimlik  "];
+
+  { rank=same; scmport; repo; }
+  { rank=same; kimlik; routing; }
+}

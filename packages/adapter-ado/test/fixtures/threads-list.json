@@ -1,0 +1,132 @@
+{
+  "value": [
+    {
+      "pullRequestThreadContext": null,
+      "id": 9001,
+      "publishedDate": "2026-08-08T10:31:07.253Z",
+      "lastUpdatedDate": "2026-08-08T10:31:07.253Z",
+      "comments": [
+        {
+          "id": 1,
+          "parentCommentId": 0,
+          "author": {
+            "displayName": "Tech Lead",
+            "id": "b1a2c3d4-e5f6-4071-8293-a4b5c6d7e8f9",
+            "uniqueName": "tech.lead@ugurbank.local"
+          },
+          "content": "IBAN checksum should reject lowercase input as well.",
+          "publishedDate": "2026-08-08T10:31:07.253Z",
+          "lastUpdatedDate": "2026-08-08T10:31:07.253Z",
+          "commentType": "text",
+          "usersLiked": []
+        }
+      ],
+      "status": "active",
+      "threadContext": {
+        "filePath": "/src/iban/validate.ts",
+        "rightFileStart": { "line": 42, "offset": 3 },
+        "rightFileEnd": { "line": 42, "offset": 28 }
+      },
+      "properties": {},
+      "isDeleted": false
+    },
+    {
+      "id": 9002,
+      "publishedDate": "2026-08-08T10:35:44.900Z",
+      "comments": [
+        {
+          "id": 1,
+          "parentCommentId": 0,
+          "author": { "displayName": "Tech Lead", "uniqueName": "tech.lead@ugurbank.local" },
+          "content": "Missing unit test for the empty string case.",
+          "publishedDate": "2026-08-08T10:35:44.900Z",
+          "commentType": "text",
+          "isDeleted": false
+        },
+        {
+          "id": 2,
+          "parentCommentId": 1,
+          "author": { "displayName": "Maestro Service", "uniqueName": "maestro-svc@ugurbank.local" },
+          "content": "Added in commit b7a41f3.",
+          "publishedDate": "2026-08-08T11:02:19.118Z",
+          "commentType": "text",
+          "isDeleted": false
+        }
+      ],
+      "status": "fixed",
+      "properties": {},
+      "isDeleted": false
+    },
+    {
+      "id": 9003,
+      "publishedDate": "2026-08-08T10:40:00.000Z",
+      "comments": [
+        {
+          "id": 1,
+          "parentCommentId": 0,
+          "author": { "displayName": "QA", "uniqueName": "qa@ugurbank.local" },
+          "content": "Nit: rename the helper.",
+          "publishedDate": "2026-08-08T10:40:00.000Z",
+          "commentType": "text",
+          "isDeleted": false
+        }
+      ],
+      "status": "wontFix",
+      "properties": {},
+      "isDeleted": false
+    },
+    {
+      "id": 9004,
+      "publishedDate": "2026-08-08T09:58:12.000Z",
+      "comments": [
+        {
+          "id": 1,
+          "parentCommentId": 0,
+          "author": { "displayName": "Azure DevOps", "uniqueName": "vsts@microsoft.com" },
+          "content": "Tech Lead voted 10",
+          "publishedDate": "2026-08-08T09:58:12.000Z",
+          "commentType": "system",
+          "isDeleted": false
+        }
+      ],
+      "properties": { "CodeReviewThreadType": { "$type": "System.String", "$value": "VoteUpdate" } },
+      "isDeleted": false
+    },
+    {
+      "id": 9005,
+      "publishedDate": "2026-08-08T10:20:00.000Z",
+      "comments": [
+        {
+          "id": 1,
+          "parentCommentId": 0,
+          "author": { "displayName": "QA", "uniqueName": "qa@ugurbank.local" },
+          "content": "",
+          "publishedDate": "2026-08-08T10:20:00.000Z",
+          "commentType": "text",
+          "isDeleted": true
+        }
+      ],
+      "status": "closed",
+      "properties": {},
+      "isDeleted": true
+    },
+    {
+      "id": 9006,
+      "publishedDate": "2026-08-08T10:45:31.020Z",
+      "comments": [
+        {
+          "id": 1,
+          "parentCommentId": 0,
+          "author": { "displayName": "Security Champion", "uniqueName": "sec@ugurbank.local" },
+          "content": "Check the masking rule for the account number.",
+          "publishedDate": "2026-08-08T10:45:31.020Z",
+          "commentType": "text",
+          "isDeleted": false
+        }
+      ],
+      "properties": {},
+      "isDeleted": false
+    }
+  ],
+  "count": 6
+}

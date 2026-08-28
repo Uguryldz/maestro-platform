@@ -1,0 +1,189 @@
+/* Analysis template designer (M108). Tokens only — never a literal colour, or
+   the dark theme silently breaks. See src/ui/tokens.css. */
+
+.tpl-split {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .tpl-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tpl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tpl-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel2);
+  padding: 4px 6px 4px 4px;
+}
+
+.tpl-row--sel {
+  border-color: var(--blue);
+}
+
+.tpl-row__pick {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: none;
+  border: 0;
+  padding: 6px;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  border-radius: 7px;
+}
+
+.tpl-row__num {
+  flex: none;
+  font-family: var(--mono, monospace);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tpl-row__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tpl-row__title {
+  font-weight: 600;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tpl-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.tpl-row__key {
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.tpl-row__tools {
+  display: flex;
+  gap: 3px;
+  flex: none;
+}
+
+.tpl-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tpl-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.tpl-check span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.tpl-check__note {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tpl-keyline {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tpl-keyline code,
+.tpl-preview code {
+  font-family: var(--mono, monospace);
+}
+
+.tpl-bar {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.tpl-bar__spacer {
+  flex: 1;
+}
+
+.tpl-bar__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 2px;
+}
+
+.tpl-preview__sec {
+  padding: 0 0 12px;
+  border-bottom: 1px dashed var(--border);
+  margin-bottom: 12px;
+}
+
+.tpl-preview__sec:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+
+.tpl-preview__hd {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.tpl-preview__desc {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 4px;
+}
+
+.tpl-preview__ex {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  white-space: pre-line;
+  margin: 0;
+}
+
+.tpl-chips {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  align-items: center;
+}

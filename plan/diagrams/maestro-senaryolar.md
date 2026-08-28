@@ -1,0 +1,79 @@
+# Maestro — Ek Geliştirme vs Yeni Proje: Ticket Açıkken Uçtan Uca Yaşam
+
+> Düzenlenebilir mermaid — mermaid.live veya draw.io (Extras → Mermaid) ile aç.
+> Örnekler: **A)** "UGURPAY-500 — kredi limiti artırma" (ek geliştirme, 4 platforma dokunuyor — işlerin çoğu bu tip)
+> **B)** "UGURPAY-600 — yeni kredi uygulaması" (yeni proje / sıfırdan repo)
+
+```mermaid
+flowchart TD
+
+%% ===== STİLLER =====
+classDef insan fill:#FED7AA,stroke:#EA580C,color:#1E293B
+classDef ai fill:#DBEAFE,stroke:#2563EB,color:#1E293B
+classDef yapan fill:#DBEAFE,stroke:#1D4ED8,stroke-width:3px,color:#1E293B
+classDef sistem fill:#F1F5F9,stroke:#64748B,color:#1E293B
+classDef bellek fill:#FEF3C7,stroke:#D97706,color:#1E293B
+classDef sablon fill:#FDF4FF,stroke:#9333EA,color:#1E293B
+classDef son fill:#DCFCE7,stroke:#16A34A,color:#1E293B
+
+%% ===== ORTAK GİRİŞ =====
+subgraph G["ORTAK GİRİŞ — her iki senaryoda aynı"]
+  T0["ANA TICKET açılır<br/>ör: UGURPAY-500 'kredi limiti artırma'"]:::sistem
+  SAB["ANALİZ ŞABLONU (kurum dokümantasyon standardı)<br/>knowledge pack'te VERSİYONLU dosya:<br/>1-Amaç/İş değeri · 2-Kapsam (dahil/hariç)<br/>3-Etki analizi (platform×modül matrisi)<br/>4-Kabul kriterleri · 5-Ekran/API değişiklikleri<br/>6-Test yaklaşımı · 7-Risk/geri dönüş planı"]:::sablon
+  ANA["ANALYST (AI)<br/>analizi ŞABLONA GÖRE üretir<br/>çıktı Zod ile şablon bölümlerine doğrulanır<br/>eksik bölüm = analiz reddedilir (fail-closed)<br/>ETKİ MATRİSİ: hangi platformlara dokunuyor?"]:::ai
+  PO1{{"PO + TECH LEAD onayı<br/>analiz + etki matrisi + alt ticket planı"}}:::insan
+  KARAR{"Repo durumu +<br/>etki matrisi?"}:::sistem
+  T0 --> ANA
+  SAB -.->|"şablon + örnek analizler<br/>(few-shot)"| ANA
+  ANA --> PO1 --> KARAR
+end
+
+%% ===== A: EK GELİŞTİRME =====
+subgraph A["A) EK GELİŞTİRME — mevcut projede (işlerin ÇOĞU)"]
+  TEK["TEK PLATFORM ise<br/>normal akış: mevcut repo klonu<br/>branch feature/UGURPAY-500<br/>bilinen 15 adım aynen"]:::sistem
+  FAN["ÇOK PLATFORM ise: ALT TICKET FAN-OUT<br/>Maestro Jira'da otomatik alt ticket açar:<br/>UGURPAY-501 → ugurpay (web servis+UI)<br/>UGURPAY-502 → ugurmobil-ios<br/>UGURPAY-503 → ugurmobil-android<br/>UGURPAY-504 → ugurmasaüstü"]:::sistem
+  MIRAS["ORTAK MİRAS her alt ticket'a:<br/>ana analiz + kendi platform bölümü<br/>ana journal'a link · aynı kabul kriterleri"]:::bellek
+  CHILD["HER ALT TICKET = KENDİ MAESTRO AKIŞI<br/>kendi repo · kendi runner (linux/mac/win)<br/>kendi sandbox + workspace + session<br/>kendi kapıları (o platformun TL/QA'sı)<br/>kendi PR'ı — birbirini BEKLEMEZ, paralel"]:::yapan
+  SIRA["BAĞIMLILIK SIRASI (analizden gelir)<br/>ör: önce -501 API ucu merge olur<br/>→ -502/-503/-504 onu bekleyen sinyalle başlar<br/>(bağımsızsa tam paralel)"]:::sistem
+  KOOR["ANA TICKET = KOORDİNATÖR WORKFLOW<br/>alt ticket'ların Done sinyallerini bekler<br/>durum özetini ana ticket'a yorumlar<br/>15-20 gün süren alt onaylar sorun değil:<br/>her alt ticket kendi hafızasıyla bekler"]:::bellek
+  BIT1["TÜM ALT TICKETLAR DONE →<br/>ana kanıt paketi = alt paketlerin birleşimi<br/>ana ticket Done"]:::son
+  TEK --> BIT1
+  FAN --> MIRAS --> CHILD --> SIRA --> KOOR --> BIT1
+end
+
+%% ===== B: YENİ PROJE =====
+subgraph B["B) YENİ PROJE — ör. 'yeni kredi uygulaması' (repo YOK)"]
+  MIM["EK ADIM: MİMARİ ÖNERİSİ (AI)<br/>analyst + engineer keşif oturumu:<br/>stack önerisi (kurum standartlarından)<br/>modül planı · repo yapısı"]:::ai
+  MIMON{{"MİMARİ ONAYI (Tech Lead + mimar)<br/>yeni repo açma yetkisi İNSANDA"}}:::insan
+  KUR["OTOMATİK KURULUM<br/>ADO'da yeni repo + branch policy<br/>(min 1 reviewer · force-push kapalı · build validation)<br/>.maestro.yaml (platform profili) + pipeline tanımı<br/>RoutingRule kaydı: yeni Jira component → yeni repo"]:::sistem
+  ISK["İSKELET OTURUMU (Agent SDK)<br/>BOŞ workspace'te kurum şablonundan proje iskeleti<br/>(ör. Next.js starter + kurum lint/CI standartları)<br/>build + smoke test YEŞİL olana kadar"]:::yapan
+  ILKPR["İLK PR = İSKELET<br/>normal kapılardan geçer (tarama+review+CI)"]:::son
+  DEVAM["SONRAKİ TICKETLAR artık<br/>'A) EK GELİŞTİRME' yoluna girer<br/>(repo artık VAR, routing kayıtlı)"]:::sistem
+  MIM --> MIMON --> KUR --> ISK --> ILKPR --> DEVAM
+end
+
+KARAR -->|"repo VAR<br/>tek platform"| TEK
+KARAR -->|"repo VAR<br/>çok platform"| FAN
+KARAR -->|"repo YOK<br/>(yeni proje)"| MIM
+DEVAM -.->|"yeni ticketlar"| TEK
+
+%% ===== TICKET AÇIKKEN ORTAM =====
+subgraph Y["TICKET AÇIK KALDIĞI SÜRECE — her alt ticket için ayrı ayrı yaşar"]
+  WSY["ÇALIŞMA ALANI + SESSION<br/>alt ticket başına ayrı workspace (şifreli)<br/>Agent SDK session dosyaları içinde<br/>her dönüşte RESUME — sıfırdan başlamak yok"]:::bellek
+  IDE["İNSAN GELİŞTİRİCİ (ai-assist/human-lead)<br/>Visual Studio · VS Code · Xcode · Android Studio<br/>AYNI feature branch'te normal git ile çalışır<br/>push/PR → ADO webhook → Maestro görür<br/>AI aynı branch'e REBASE ile katkı (force-push yasak)<br/>/ai-takeover · /ai-explain komutları ticket'tan"]:::insan
+  MCPY["AJANIN ARAÇLARI (MCP)<br/>jira-mcp: ana+alt ticket oku, yorum<br/>ado-mcp: PR thread'leri, pipeline durumu<br/>workspace-mcp: journal oku/yaz<br/>→ ajan 'kardeş ticket -501 merge oldu mu?'<br/>sorusunu araçla kendisi sorar"]:::sablon
+  JRN["JOURNAL + YAŞAYAN ÖZET<br/>alt ticket'ınki kendi akışına<br/>+ ana ticket'ın koordinasyon özeti<br/>insan yorumları da işlenir"]:::bellek
+  WSY ~~~ IDE ~~~ MCPY ~~~ JRN
+end
+
+CHILD -.-> WSY
+CHILD -.-> IDE
+CHILD -.-> MCPY
+TEK -.-> WSY
+ISK -.-> WSY
+```
+
+## Okuma anahtarı
+- **A yolu (işlerin çoğu):** analizin etki matrisi kaç platforma dokunulduğunu söyler; birden fazlaysa Maestro **alt ticket** açar, her biri kendi repo/runner/kapı setiyle **paralel** koşar, API gibi bağımlılıklar analizden gelen sırayla sinyallenir; ana ticket sadece koordine eder.
+- **B yolu:** tek fark başta — mimari onayı (insan) + otomatik repo kurulumu + iskelet PR'ı; ilk PR merge olduktan sonra her şey A yoluna döner.
+- **Analiz standardı:** şablon knowledge pack'te versiyonlu bir dosyadır; Studio'dan güncellenir; analyst çıktısı şablonun bölümlerine Zod ile doğrulanır — bölüm eksikse analiz kapıya gelmeden reddedilir.

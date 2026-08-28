@@ -1,0 +1,6 @@
+# Sırlar — ASLA git'e girmesin.
+# .env doldurulmuş hâliyle veritabanı parolasını, Redis parolasını, şifreleme
+# anahtarını ve webhook sırrını taşır. Depoya girerse geri alınamaz.
+.env
+*.env
+!.env.example

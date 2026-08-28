@@ -1,0 +1,37 @@
+{
+  "subscriptionId": "3c2b1a09-8f7e-4d6c-9b5a-4f3e2d1c0b9a",
+  "notificationId": 3,
+  "id": "0d1c2b3a-4958-4677-8695-a4b3c2d1e0f9",
+  "eventType": "git.push",
+  "publisherId": "tfs",
+  "message": { "text": "Maestro Service pushed updates to ugurpay:feature/UGURPAY-4312-iban-validation" },
+  "resource": {
+    "commits": [
+      {
+        "commitId": "b7a41f3c9d825e0641a2b3c4d5e6f708192a3b4c",
+        "author": {
+          "name": "Maestro Service",
+          "email": "maestro-svc@ugurbank.local",
+          "date": "2026-08-08T10:09:44Z"
+        },
+        "comment": "[AI] UGURPAY-4312 add IBAN checksum validation"
+      }
+    ],
+    "refUpdates": [
+      {
+        "name": "refs/heads/feature/UGURPAY-4312-iban-validation",
+        "oldObjectId": "9c1e5a3b7d2f4068a1b3c5d7e9f0a2b4c6d8e0f1",
+        "newObjectId": "b7a41f3c9d825e0641a2b3c4d5e6f708192a3b4c"
+      }
+    ],
+    "repository": {
+      "id": "5f8c3a1e-9b2d-4c7a-8e11-2b6d4f0a9c33",
+      "name": "ugurpay",
+      "project": { "id": "1c9f2b77-3d64-45e0-9a2b-7f4c6d81ea05", "name": "UgurPay" }
+    },
+    "pushId": 552,
+    "date": "2026-08-08T10:09:47.117Z"
+  },
+  "resourceVersion": "1.0",
+  "createdDate": "2026-08-08T10:09:47.9000000Z"
+}

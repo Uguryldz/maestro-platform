@@ -1,0 +1,26 @@
+{
+  "subscriptionId": "7f6a2b91-3c4d-4e5f-8a9b-0c1d2e3f4a5b",
+  "notificationId": 18,
+  "id": "f0e1d2c3-b4a5-4968-8778-6a5b4c3d2e1f",
+  "eventType": "build.complete",
+  "publisherId": "tfs",
+  "message": { "text": "Build 20260808.4 succeeded" },
+  "resource": {
+    "_links": {
+      "web": { "href": "https://dev.azure.com/ugurbank/UgurPay/_build/results?buildId=4712" }
+    },
+    "id": 4712,
+    "buildNumber": "20260808.4",
+    "status": "completed",
+    "result": "succeeded",
+    "finishTime": "2026-08-08T13:05:41.2200000Z",
+    "reason": "individualCI",
+    "sourceBranch": "refs/heads/main",
+    "sourceVersion": "d3f9a172c48b5e60a7d1c2b3e4f5061728394a5b",
+    "definition": { "id": 13, "name": "ugurpay-ci", "type": "build" },
+    "project": { "id": "1c9f2b77-3d64-45e0-9a2b-7f4c6d81ea05", "name": "UgurPay" },
+    "repository": { "id": "5f8c3a1e-9b2d-4c7a-8e11-2b6d4f0a9c33", "type": "TfsGit", "name": "ugurpay" }
+  },
+  "resourceVersion": "2.0",
+  "createdDate": "2026-08-08T13:05:42.9990000Z"
+}

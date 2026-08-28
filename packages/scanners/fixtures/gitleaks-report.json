@@ -1,0 +1,42 @@
+[
+ {
+  "RuleID": "stripe-access-token",
+  "Description": "Found a Stripe Access Token, posing a risk to payment processing services and sensitive financial data.",
+  "StartLine": 3,
+  "EndLine": 3,
+  "StartColumn": 22,
+  "EndColumn": 65,
+  "Match": "REDACTED-FOR-FIXTURE",
+  "Secret": "REDACTED-FOR-FIXTURE",
+  "File": "/workspace/src/settings.js",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 4.8619704,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [],
+  "Fingerprint": "/workspace/src/settings.js:stripe-access-token:3"
+ },
+ {
+  "RuleID": "github-pat",
+  "Description": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
+  "StartLine": 2,
+  "EndLine": 2,
+  "StartColumn": 24,
+  "EndColumn": 63,
+  "Match": "REDACTED-FOR-FIXTURE",
+  "Secret": "REDACTED-FOR-FIXTURE",
+  "File": "/workspace/src/settings.js",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 5.071928,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [],
+  "Fingerprint": "/workspace/src/settings.js:github-pat:2"
+ }
+]

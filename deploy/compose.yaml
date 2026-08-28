@@ -1,0 +1,350 @@
+# Maestro — local/staging stack.
+#
+# One command brings it up:  pnpm deploy:up   (or  make -C deploy up)
+#
+# The dependency order below is real, not decorative. Every `depends_on` uses
+# `condition: service_healthy`, which means a container does not start until
+# the thing it needs ANSWERS — not until the thing it needs has been created.
+# The difference matters: Postgres accepts TCP connections several seconds
+# before it accepts queries, and a BFF that starts in that window crashes on
+# its first query and then looks like a flapping service rather than a startup
+# ordering bug.
+#
+#   postgres ─┬─→ migrate ─┬─→ bff ──→ studio
+#             │            └─→ worker
+#   temporal ─┤
+#   redis ────┘
+#
+# `migrate` is a one-shot job, and both services wait for it to COMPLETE
+# (`service_completed_successfully`): a BFF querying a table that a migration
+# has not created yet fails in a way that reads as a code bug.
+#
+# Secrets: nothing in this file is a credential except the local Postgres
+# password, which exists only inside this compose network and is overridable.
+# Every application secret is a REFERENCE (`*_REF`) that the env-file secret
+# driver resolves from a `MAESTRO_SECRET_*` variable supplied by `.env` — which
+# is git-ignored. No secret value belongs in this file or in an image (M80).
+
+name: maestro
+
+# Settings every Node service shares. Anchored rather than repeated so a
+# hardening change cannot be applied to two services and forgotten on the third.
+#
+# The build block is NOT anchored: each service overrides `build.args` to name
+# its entrypoint, and a merged-then-overridden mapping replaces the whole block
+# rather than merging into it — the anchor would look like it was doing
+# something while contributing nothing.
+x-node-hardening: &node-hardening
+  restart: unless-stopped
+  # No new privileges, ever: nothing in these images is setuid, so a process
+  # that gains privileges did so through an exploit.
+  security_opt:
+    - no-new-privileges:true
+  # The image already runs as uid 10001; this states it at the compose level
+  # too, so a rebuilt image that forgot its USER line still cannot run as root.
+  user: "10001:10001"
+  cap_drop:
+    - ALL
+  read_only: true
+  # A read-only root filesystem needs somewhere to write. `noexec` because
+  # nothing legitimate execs out of a scratch directory.
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m
+
+x-node-env: &node-env
+  NODE_ENV: ${NODE_ENV:-development}
+  MAESTRO_PROFILE: ${MAESTRO_PROFILE:-dev}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-maestro}:${POSTGRES_PASSWORD:-DEGISTIR-parola-uret-openssl-rand-hex-24}@postgres:5432/${POSTGRES_DB:-maestro}
+  TEMPORAL_ADDRESS: temporal:7233
+  TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+  # Cross-process coordination (M4): the atomic token bucket (M19), the
+  # capacity semaphore, the distributed lock and the cache layer. Without it
+  # each replica runs a process-local limiter and the fleet grants N times the
+  # configured allowance — see packages/cache/RAPOR.md.
+  REDIS_URL: redis://redis:6379
+  JIRA_BASE_URL: ${JIRA_BASE_URL}
+  ADO_BASE_URL: ${ADO_BASE_URL}
+  ADO_ORG: ${ADO_ORG}
+  ADO_PROJECT: ${ADO_PROJECT}
+  ADO_PR_VALIDATION_BUILDS: ${ADO_PR_VALIDATION_BUILDS}
+  LLM_BASE_URL: ${LLM_BASE_URL}
+  LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+  STORAGE_ENDPOINT: ${STORAGE_ENDPOINT}
+  VAULT_ADDR: ${VAULT_ADDR}
+  SCAN_IMAGE_TRIVY: ${SCAN_IMAGE_TRIVY}
+  SCAN_IMAGE_SEMGREP: ${SCAN_IMAGE_SEMGREP}
+  SCAN_IMAGE_GITLEAKS: ${SCAN_IMAGE_GITLEAKS}
+  # The engineering turn's sandbox image (M21/M27). Optional and empty by
+  # default: unset, the worker keeps a NARROW refusal for step 6a rather than
+  # inventing a fleet. It was missing from this anchor entirely, so a pilot
+  # team could set it in `.env`, see it accepted, and still get "no sandbox
+  # fleet is configured" — the variable never reached the container.
+  RUNNER_IMAGE_LINUX: ${RUNNER_IMAGE_LINUX:-}
+  RUNNER_COMMAND_TIMEOUT_SECONDS: ${RUNNER_COMMAND_TIMEOUT_SECONDS:-1800}
+  DOCKER_SOCKET_PATH: ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
+  # Identity (M8). `local` unless the deployment selects the LDAPS driver;
+  # none of these carry a credential — the service password is a REF below.
+  IDENTITY_DRIVER: ${IDENTITY_DRIVER:-local}
+  LDAP_URL: ${LDAP_URL:-}
+  LDAP_USER_BASE_DN: ${LDAP_USER_BASE_DN:-}
+  LDAP_GROUP_BASE_DN: ${LDAP_GROUP_BASE_DN:-}
+  LDAP_BIND_DN: ${LDAP_BIND_DN:-}
+  LDAP_CA_CERT_PATH: ${LDAP_CA_CERT_PATH:-}
+  LDAP_USER_FILTER: ${LDAP_USER_FILTER:-}
+  LDAP_GROUP_FILTER: ${LDAP_GROUP_FILTER:-}
+  LDAP_ROLE_MAPPINGS: ${LDAP_ROLE_MAPPINGS:-}
+  LDAP_ALLOW_INSECURE: ${LDAP_ALLOW_INSECURE:-false}
+  # Secret REFERENCES, not values. The env-file driver maps each to a
+  # MAESTRO_SECRET_* variable; the values come from `.env`, never from here.
+  JIRA_TOKEN_REF: ${JIRA_TOKEN_REF:-kv/jira#token}
+  JIRA_WEBHOOK_SECRET_REF: ${JIRA_WEBHOOK_SECRET_REF:-kv/jira#webhook}
+  ADO_TOKEN_REF: ${ADO_TOKEN_REF:-kv/ado#token}
+  ADO_WEBHOOK_SECRET_REF: ${ADO_WEBHOOK_SECRET_REF:-kv/ado#webhook}
+  LLM_API_KEY_REF: ${LLM_API_KEY_REF:-kv/llm#api-key}
+  LDAP_BIND_PASSWORD_REF: ${LDAP_BIND_PASSWORD_REF:-kv/ldap#service-password}
+  # The double underscore is the driver's encoding of `#`, not a typo:
+  # `kv/jira#token` → MAESTRO_SECRET_KV_JIRA__TOKEN. `secret-names.test.ts`
+  # derives these from the driver so the two cannot drift.
+  MAESTRO_SECRET_KV_JIRA__TOKEN: ${MAESTRO_SECRET_KV_JIRA__TOKEN:-}
+  MAESTRO_SECRET_KV_JIRA__WEBHOOK: ${MAESTRO_SECRET_KV_JIRA__WEBHOOK:-}
+  MAESTRO_SECRET_KV_ADO__TOKEN: ${MAESTRO_SECRET_KV_ADO__TOKEN:-}
+  MAESTRO_SECRET_KV_ADO__WEBHOOK: ${MAESTRO_SECRET_KV_ADO__WEBHOOK:-}
+  # `api-key`: the hyphen is not a legal environment-variable character, so the
+  # driver escapes it as `__2D_` (its code point). Derived, never hand-written.
+  MAESTRO_SECRET_KV_LLM__API__2D_KEY: ${MAESTRO_SECRET_KV_LLM__API__2D_KEY:-}
+  # `service-password`: same hyphen escaping as `api-key` above (M8 LDAPS).
+  MAESTRO_SECRET_KV_LDAP__SERVICE__2D_PASSWORD: ${MAESTRO_SECRET_KV_LDAP__SERVICE__2D_PASSWORD:-}
+
+services:
+  # ── data ───────────────────────────────────────────────────────────────────
+  postgres:
+    # Pinnable by digest without editing this file: set POSTGRES_IMAGE in .env
+    # to `postgres@sha256:...`. The tag is the default rather than the rule
+    # because a digest cannot be resolved offline and a WRONG digest committed
+    # here would be worse than a tag — it would not pull at all. See D-1 in
+    # RAPOR-duzeltme.md: scanner images are digest-ONLY (M27) because their
+    # output is gate evidence; these carry data and an engine, so they are
+    # version-pinned by default and digest-pinnable by an operator who wants
+    # the stronger guarantee.
+    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-maestro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-DEGISTIR-parola-uret-openssl-rand-hex-24}
+      POSTGRES_DB: ${POSTGRES_DB:-maestro}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # `-d`/`-U` are required: a bare `pg_isready` probes the default database
+      # as the default user, which can answer while the application's own
+      # database is still being created by the entrypoint.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-maestro} -d ${POSTGRES_DB:-maestro}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      # Generous: first boot initialises the data directory, and a restart with
+      # a large database replays WAL. The retries are what absorb that, and a
+      # start_period that is too short turns a slow first boot into a failure.
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  # ── coordination ───────────────────────────────────────────────────────────
+  # Redis (M4). Everything it holds is derivable — token buckets refill,
+  # semaphore permits expire, cache entries have a TTL — so there is no volume
+  # and no persistence. `--save ""` and `--appendonly no` state that on purpose
+  # rather than by omission: a disk write per rate-limit check would be the
+  # slowest thing in the request path, for data whose worst-case loss is one
+  # refilled bucket.
+  redis:
+    image: ${REDIS_IMAGE:-redis:7-alpine}
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      # Bounded, with a policy: coordination keys all carry a TTL, so evicting
+      # the longest-idle one under pressure is right. The default `noeviction`
+      # would instead start refusing writes — a rate limiter that errors rather
+      # than limits.
+      - --maxmemory
+      - ${REDIS_MAXMEMORY:-256mb}
+      - --maxmemory-policy
+      - volatile-ttl
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    # Redis's entrypoint drops to the `redis` user with setpriv, which needs
+    # SETUID/SETGID — and `cap_drop: ALL` takes them away, so the container
+    # crash-looped on `setresuid failed`. Starting AS that user is the same
+    # outcome without the capability: uid/gid 999 are the ones the official
+    # image creates.
+    user: "999:999"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Not published to the host: nothing outside this network needs it, and an
+    # unauthenticated Redis on a host port is a well-known way to lose a box.
+    expose:
+      - "6379"
+
+  # ── workflow engine ────────────────────────────────────────────────────────
+  temporal:
+    image: ${TEMPORAL_IMAGE:-temporalio/auto-setup:1.25.2}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-maestro}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-DEGISTIR-parola-uret-openssl-rand-hex-24}
+      POSTGRES_SEEDS: postgres
+      # Temporal's own databases, kept apart from the application's.
+      DBNAME: temporal
+      VISIBILITY_DBNAME: temporal_visibility
+    healthcheck:
+      # `tctl cluster health` asks the frontend service whether it is serving,
+      # which is what a client needs. A TCP check on 7233 would pass while the
+      # namespace registry was still initialising.
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${TEMPORAL_PORT:-7233}:7233"
+
+  temporal-ui:
+    image: ${TEMPORAL_UI_IMAGE:-temporalio/ui:2.32.0}
+    restart: unless-stopped
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:${STUDIO_PORT:-7000}
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${TEMPORAL_UI_PORT:-8233}:8080"
+
+  # ── schema ─────────────────────────────────────────────────────────────────
+  # A one-shot job, not a service. It holds a Postgres advisory lock while it
+  # runs (see apps/deploy/dist/bin/migrate.js), so scaling the stack to several
+  # replicas cannot produce two concurrent `prisma migrate deploy` runs racing
+  # on the `_prisma_migrations` table.
+  migrate:
+    <<: *node-hardening
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile.node
+      args:
+        ENTRYPOINT_SCRIPT: apps/deploy/dist/bin/migrate.js
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *node-env
+
+  # ── application ────────────────────────────────────────────────────────────
+  bff:
+    <<: *node-hardening
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile.node
+      args:
+        ENTRYPOINT_SCRIPT: apps/deploy/dist/bin/bff.js
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: *node-env
+      BFF_PORT: "7001"
+      BFF_HOST: "0.0.0.0"
+    healthcheck:
+      # `/readyz`, not `/healthz`: readiness actually pings Temporal and the
+      # kill-switch store, so it answers "would a request work" rather than
+      # "is the process alive". A liveness-only probe is how a BFF that has
+      # lost its workflow engine stays in the load balancer.
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:7001/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+    ports:
+      - "${BFF_PORT:-7001}:7001"
+
+  worker:
+    <<: *node-hardening
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile.node
+      args:
+        ENTRYPOINT_SCRIPT: apps/deploy/dist/bin/worker.js
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: *node-env
+    # No healthcheck: a Temporal worker exposes no port. Its liveness is
+    # visible where it matters — as a registered poller on the task queue in
+    # the Temporal UI. A shell-based check here would assert only that PID 1
+    # exists, which `restart: unless-stopped` already covers.
+
+  studio:
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile.studio
+    restart: unless-stopped
+    depends_on:
+      bff:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # nginx-unprivileged writes its pid and temp files under /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    ports:
+      # 8080 inside, because the image never runs as root and cannot bind 80.
+      - "${STUDIO_PORT:-7000}:8080"
+
+volumes:
+  postgres-data:

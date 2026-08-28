@@ -1,0 +1,41 @@
+{
+  "name": "@maestro/workflows",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@maestro/audit": "workspace:*",
+    "@maestro/contracts": "workspace:*",
+    "@maestro/execution": "workspace:*",
+    "@maestro/memory": "workspace:*",
+    "@maestro/notify": "workspace:*",
+    "@maestro/ports": "workspace:*",
+    "@maestro/publish": "workspace:*",
+    "@maestro/scanners": "workspace:*",
+    "@maestro/storage": "workspace:*",
+    "@temporalio/activity": "^1.11.0",
+    "@temporalio/common": "^1.11.0",
+    "@temporalio/worker": "^1.11.0",
+    "@temporalio/workflow": "^1.11.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@maestro/adapter-jira": "workspace:*",
+    "@maestro/llm-gateway": "workspace:*",
+    "@maestro/pii": "workspace:*",
+    "@maestro/secrets": "workspace:*",
+    "@maestro/test-kit": "workspace:*",
+    "@temporalio/client": "^1.11.0",
+    "@temporalio/testing": "^1.11.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.0"
+  }
+}

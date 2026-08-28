@@ -1,0 +1,36 @@
+{
+  "name": "@maestro/bff",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Fastify 5 BFF: Jira/ADO webhooks, authenticated REST, Temporal start/signal (M7)",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@maestro/audit": "workspace:*",
+    "@maestro/config": "workspace:*",
+    "@maestro/contracts": "workspace:*",
+    "@maestro/execution": "workspace:*",
+    "@maestro/llm-gateway": "workspace:*",
+    "@maestro/mcp-servers": "workspace:*",
+    "@maestro/notify": "workspace:*",
+    "@maestro/ports": "workspace:*",
+    "@maestro/publish": "workspace:*",
+    "bcryptjs": "^3.0.2",
+    "fastify": "^5.2.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@maestro/adapter-jira": "workspace:*",
+    "@maestro/workflows": "workspace:*",
+    "@types/node": "^24.0.0",
+    "docx": "^9.7.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.0"
+  }
+}

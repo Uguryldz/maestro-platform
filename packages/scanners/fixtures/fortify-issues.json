@@ -1,0 +1,42 @@
+{
+  "data": [
+    {
+      "id": 100341,
+      "projectVersionId": 42,
+      "lastScanId": 7,
+      "issueInstanceId": "3B7F1A2C9D4E",
+      "issueName": "SQL Injection",
+      "friority": "Critical",
+      "fullFileName": "src/main/java/com/bank/pay/PayDao.java",
+      "lineNumber": 88,
+      "engineCategory": "STATIC",
+      "engineType": "SCA",
+      "primaryLocation": "src/main/java/com/bank/pay/PayDao.java",
+      "analyzer": "Dataflow",
+      "kingdom": "Input Validation and Representation",
+      "hidden": false,
+      "removed": false,
+      "suppressed": false
+    },
+    {
+      "id": 100342,
+      "projectVersionId": 42,
+      "lastScanId": 7,
+      "issueInstanceId": "A19C4E7D2B60",
+      "issueName": "Password Management: Hardcoded Password",
+      "friority": "Medium",
+      "fullFileName": "src/test/java/com/bank/pay/PayDaoTest.java",
+      "lineNumber": 23,
+      "engineCategory": "STATIC",
+      "engineType": "SCA",
+      "analyzer": "Structural",
+      "kingdom": "Security Features",
+      "hidden": false,
+      "removed": false,
+      "suppressed": false
+    }
+  ],
+  "count": 2,
+  "responseCode": 200,
+  "links": { "self": { "href": "https://ssc.bank.example/ssc/api/v1/projectVersions/42/issues?start=0&limit=200" } }
+}

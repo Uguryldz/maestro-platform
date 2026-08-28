@@ -1,0 +1,59 @@
+.ui-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  box-shadow: var(--shadow);
+}
+
+.ui-card__hd {
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ui-card__hd h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 640;
+}
+
+.ui-card__sub {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.ui-card__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ui-card__bd {
+  padding: 15px;
+}
+
+.ui-kpi {
+  padding: 14px 15px;
+}
+
+.ui-kpi__lbl {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.ui-kpi__val {
+  font-size: 26px;
+  font-weight: 680;
+  letter-spacing: -0.5px;
+}
+
+.ui-kpi__note {
+  font-size: 11.5px;
+  color: var(--faint);
+  margin-top: 4px;
+}

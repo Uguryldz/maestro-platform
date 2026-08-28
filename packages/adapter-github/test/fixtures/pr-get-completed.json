@@ -1,0 +1,15 @@
+{
+  "url": "https://api.github.com/repos/ugurbank/ugurpay/pulls/128",
+  "id": 55500128,
+  "node_id": "PR_kwDOAABCDE5abcdef",
+  "number": 128,
+  "state": "closed",
+  "locked": false,
+  "title": "[AI] UGURPAY-4312 IBAN validation",
+  "draft": false,
+  "merged": true,
+  "merged_at": "2026-08-09T14:22:10Z",
+  "merge_commit_sha": "d3f9a172c48b5e60a7d1c2b3e4f5061728394a5b",
+  "head": { "ref": "feature/UGURPAY-4312-iban-validation" },
+  "base": { "ref": "main" }
+}

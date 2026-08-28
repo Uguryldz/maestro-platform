@@ -1,0 +1,72 @@
+{
+  "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+  "id": "10501",
+  "self": "https://jira.internal.bank/rest/api/2/issue/10501",
+  "key": "UGURPAY-501",
+  "fields": {
+    "summary": "Şifre sıfırlama akışına e-posta doğrulama adımı eklensin",
+    "description": "Kullanıcı şifresini sıfırlarken e-posta ile gönderilen 6 haneli kod doğrulanmalı.\n\nh3. Notlar\n* kod 10 dakika geçerli olmalı\n* 3 yanlış denemede hesap 15 dakika kilitlenmeli",
+    "issuetype": {
+      "self": "https://jira.internal.bank/rest/api/2/issuetype/10001",
+      "id": "10001",
+      "description": "A user story",
+      "iconUrl": "https://jira.internal.bank/images/icons/issuetypes/story.svg",
+      "name": "Story",
+      "subtask": false
+    },
+    "project": {
+      "self": "https://jira.internal.bank/rest/api/2/project/10100",
+      "id": "10100",
+      "key": "UGURPAY",
+      "name": "Ugur Payments",
+      "projectTypeKey": "software"
+    },
+    "reporter": {
+      "self": "https://jira.internal.bank/rest/api/2/user?username=ayse.kaya",
+      "name": "ayse.kaya",
+      "key": "JIRAUSER10201",
+      "emailAddress": "ayse.kaya@bank.example",
+      "displayName": "Ayşe Kaya",
+      "active": true,
+      "timeZone": "Europe/Istanbul"
+    },
+    "assignee": {
+      "self": "https://jira.internal.bank/rest/api/2/user?username=mert.demir",
+      "name": "mert.demir",
+      "key": "JIRAUSER10321",
+      "emailAddress": "mert.demir@bank.example",
+      "displayName": "Mert Demir",
+      "active": true,
+      "timeZone": "Europe/Istanbul"
+    },
+    "components": [
+      {
+        "self": "https://jira.internal.bank/rest/api/2/component/10310",
+        "id": "10310",
+        "name": "auth-service",
+        "description": "Kimlik doğrulama servisi"
+      },
+      {
+        "self": "https://jira.internal.bank/rest/api/2/component/10311",
+        "id": "10311",
+        "name": "web-frontend"
+      }
+    ],
+    "labels": ["maestro", "guvenlik"],
+    "parent": {
+      "id": "10490",
+      "key": "UGURPAY-490",
+      "self": "https://jira.internal.bank/rest/api/2/issue/10490",
+      "fields": {
+        "summary": "Kimlik doğrulama iyileştirmeleri",
+        "status": {
+          "self": "https://jira.internal.bank/rest/api/2/status/3",
+          "name": "In Progress",
+          "id": "3"
+        }
+      }
+    },
+    "created": "2026-07-31T09:14:02.000+0300",
+    "updated": "2026-08-08T13:12:33.000+0300"
+  }
+}

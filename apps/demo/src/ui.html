@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maestro — canlı demo</title>
+<style>
+:root{
+  --bg:#f6f7fb; --panel:#fff; --panel2:#f1f3f9; --border:#e2e6f0; --border2:#cdd4e4;
+  --text:#0f172a; --mini:#64748b; --faint:#94a3b8;
+  --blue:#2563eb; --green:#16a34a; --amber:#d97706; --red:#dc2626; --teal:#0d9488;
+  --term:#0b1120; --termtext:#cbd5e1;
+  /* Atlassian palette — only the Jira pane below uses these. */
+  --j-blue:#0052CC; --j-blue-d:#0747A6; --j-text:#172B4D; --j-sub:#6B778C;
+  --j-border:#DFE1E6; --j-bg:#F4F5F7; --j-hover:#EBECF0;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:18px}
+h1{font-size:19px;margin:0}
+.sub{color:var(--mini);font-size:13px;margin-top:3px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px}
+.bd{padding:12px 14px}
+.mini{font-size:12px;color:var(--mini)}
+.honest{border-color:#fbbf24;background:#fffbeb;margin:14px 0}
+.honest b{color:#92400e}
+.top{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.spacer{flex:1}
+.btn{border:1px solid var(--border2);background:var(--panel);color:var(--text);border-radius:8px;padding:8px 14px;font:inherit;cursor:pointer}
+.btn:hover{background:var(--panel2)}
+.btn.p{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.g{background:var(--green);border-color:var(--green);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;align-items:start}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}}
+.ph{padding:9px 13px;border-bottom:1px solid var(--border);font-weight:600;display:flex;gap:8px;align-items:center}
+.pane{display:flex;flex-direction:column;min-height:560px}
+.term{background:var(--term);color:var(--termtext);border-radius:0 0 10px 10px;padding:11px;font:12.5px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;overflow:auto;flex:1;max-height:40vh}
+.l-dim{color:#64748b}.l-info{color:#93c5fd}.l-ok{color:#6ee7b7}.l-warn{color:#fcd34d}.l-err{color:#fca5a5}
+.steps{padding:10px 12px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid var(--border)}
+.step{display:flex;gap:9px;align-items:flex-start;padding:6px 8px;border-radius:7px;background:var(--panel2)}
+.step .dot{width:18px;height:18px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-size:11px;background:#cbd5e1;color:#fff;margin-top:2px}
+.step.calisiyor .dot{background:var(--blue)}
+.step.tamam .dot{background:var(--green)}
+.step.onay .dot{background:var(--amber)}
+.step.hata .dot{background:var(--red)}
+.step.calisiyor{background:#eff6ff}
+.step.onay{background:#fffbeb}
+.step.hata{background:#fef2f2}
+.step .t{font-weight:600;font-size:13px}
+.step .h{font-size:12px;color:var(--mini)}
+.step .n{font-size:12px;color:#334155;margin-top:2px}
+.tag{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11.5px;background:#e2e8f0;color:#334155}
+.tag.b{background:#dbeafe;color:#1e40af}.tag.g{background:#dcfce7;color:#166534}
+.tag.a{background:#fef3c7;color:#92400e}.tag.r{background:#fee2e2;color:#991b1b}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:9px 13px;min-width:132px}
+.kpi .l{font-size:11.5px;color:var(--mini)}
+.kpi .v{font-size:16px;font-weight:700;margin-top:2px}
+code{background:var(--panel2);border-radius:5px;padding:1px 5px;font-size:12.5px}
+.err{color:var(--red);font-weight:600}
+
+/* ------------------------------------------------------------------ Jira
+   From here down everything imitates a Jira Data Center issue screen:
+   Atlassian's palette, 3px corners, its tight leading and its lozenges. */
+.jira-pane{border-radius:3px;border-color:var(--j-border);color:var(--j-text);font-size:14px;line-height:1.428}
+.jbar{display:flex;align-items:center;gap:6px;padding:8px 14px;border-bottom:1px solid var(--j-border);background:var(--j-bg);border-radius:3px 3px 0 0;font-size:12px}
+.jproj{width:20px;height:20px;border-radius:3px;background:var(--j-blue);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700;letter-spacing:.3px}
+.jcrumb{color:var(--j-blue);text-decoration:none}
+.jcrumb:hover{text-decoration:underline}
+.jcur{color:var(--j-sub)}
+.jtype{display:flex;align-items:center}
+.jslash{color:#B3BAC5}
+.jprop{color:var(--j-sub);font-size:11px;background:#fff;border:1px solid var(--j-border);border-radius:3px;padding:1px 6px}
+.jscroll{flex:1;overflow:auto;max-height:66vh;padding:14px 18px 18px;background:#fff;border-radius:0 0 3px 3px}
+.jempty{color:var(--j-sub);font-size:13px;padding:6px 0 14px}
+.jsum{font-size:24px;line-height:1.2;font-weight:500;color:var(--j-text);margin:2px 0 16px}
+.jmod{margin-bottom:18px}
+.jmodh{font-size:13px;font-weight:600;color:var(--j-text);margin-bottom:8px}
+.jdetails{border:1px solid var(--j-border);border-radius:3px;padding:12px 14px;background:#fff}
+.jfields{display:grid;grid-template-columns:118px 1fr;row-gap:9px;column-gap:12px;align-items:start;font-size:13px}
+.jfields .jk{color:var(--j-sub);font-weight:400}
+.jfields .jv{color:var(--j-text);display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.jicon{width:16px;height:16px;flex:0 0 auto;display:block}
+.jlabel{display:inline-block;background:var(--j-hover);color:var(--j-text);border-radius:3px;padding:1px 6px;font-size:12px}
+.lz{display:inline-block;border-radius:3px;padding:2px 6px;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;line-height:1.35;max-width:100%}
+.lz-todo{background:#DFE1E6;color:#42526E}
+.lz-prog{background:#DEEBFF;color:#0747A6}
+.lz-move{background:#FFF0B3;color:#172B4D}
+.lz-done{background:#E3FCEF;color:#006644}
+.lz-err{background:#FFEBE6;color:#BF2600}
+.jav{width:24px;height:24px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-size:10px;font-weight:700;color:#fff;letter-spacing:.2px}
+.jav-l{width:32px;height:32px;font-size:12px}
+.jav-none{background:#DFE1E6;color:#5E6C84}
+.jrt{font-size:14px;color:var(--j-text)}
+.jrt p{margin:0 0 8px}
+.jrt p:last-child{margin-bottom:0}
+.jrt h2,.jrt h3,.jrt h4{font-size:16px;font-weight:600;margin:14px 0 8px;color:var(--j-text)}
+.jrt ul{margin:0 0 10px;padding-left:22px}
+.jrt li{margin:2px 0}
+.jrt a{color:var(--j-blue)}
+.jcode{background:var(--j-hover);border-radius:3px;padding:1px 4px;font:12.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:#172B4D}
+.jacth{display:flex;align-items:center;gap:8px;border-bottom:2px solid var(--j-border);padding-bottom:6px;margin-bottom:10px}
+.jacth .jmodh{margin:0}
+.jcount{background:var(--j-hover);color:var(--j-sub);border-radius:10px;padding:0 7px;font-size:11px;font-weight:700}
+.jsort{border:none;background:none;color:var(--j-blue);font:inherit;font-size:12px;cursor:pointer;padding:0}
+.jsort:hover{text-decoration:underline}
+.jcm{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #F4F5F7}
+.jcm:last-child{border-bottom:none}
+.jcm-main{min-width:0;flex:1}
+.jcm-h{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:4px}
+.jcm-who{font-weight:600;color:var(--j-text);font-size:13.5px}
+.jcm-time{color:var(--j-sub);font-size:12px}
+.japp{background:#DFE1E6;color:#42526E;border-radius:3px;padding:0 5px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.jcm-b{font-size:14px;color:var(--j-text);word-break:break-word}
+.jpanel{border-radius:3px;padding:10px 12px;border-left:3px solid var(--j-blue);background:#DEEBFF}
+.jpanel .jp-h{font-weight:600;font-size:13.5px;margin-bottom:6px;color:var(--j-text)}
+.jp-info{border-left-color:#0052CC;background:#DEEBFF}
+.jp-note{border-left-color:#5243AA;background:#EAE6FF}
+.jp-success{border-left-color:#00875A;background:#E3FCEF}
+.jp-warning{border-left-color:#FF8B00;background:#FFFAE6}
+.jp-error{border-left-color:#DE350B;background:#FFEBE6}
+.jeditor{display:flex;gap:10px;padding:12px 0 4px}
+.jed-main{flex:1;min-width:0}
+.jta{width:100%;border:1px solid var(--j-border);border-radius:3px;padding:8px 10px;font:inherit;font-size:14px;color:var(--j-text);background:#FAFBFC;resize:vertical;min-height:72px}
+.jta:focus{outline:none;background:#fff;border-color:#4C9AFF;box-shadow:0 0 0 1px #4C9AFF}
+.jed-actions{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.jbtn{border:none;border-radius:3px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}
+.jbtn-p{background:var(--j-blue);color:#fff}
+.jbtn-p:hover{background:#0065FF}
+.jbtn-p:disabled{background:var(--j-hover);color:#A5ADBA;cursor:not-allowed}
+.jbtn-s{background:none;color:var(--j-sub)}
+.jbtn-s:hover{background:var(--j-hover);color:var(--j-text)}
+.jhint{font-size:12px;color:var(--j-sub)}
+.jfill{cursor:pointer;color:var(--j-blue)}
+.jfill:hover{text-decoration:underline}
+.jfail{color:#BF2600;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>🎬 Maestro — canlı demo</h1>
+      <div class="sub">Ticket yaz → Maestro okur → analiz üretir → <b>sen onaylarsın</b> → kod yazılır → PR açılır → <b>sen onaylarsın</b> → birleşir.</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn p" id="start">▶ Akışı başlat</button>
+  </div>
+
+  <div class="card honest"><div class="bd">
+    <b>Dürüstlük notu:</b> Bu demoda <b>Jira ve Azure DevOps sahtedir</b> — bilgisayarında çalışan iki taklit sunucu (kurum erişimi yok).
+    <b>Model gerçektir</b>: analiz ve kod <span id="model">…</span> ile gerçekten üretiliyor. Testler gerçekten çalıştırılıyor.
+    Bir adım patlarsa ekranda kırmızı görünür — başarı taklit edilmez.
+  </div></div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="l">Ticket</div><div class="v" id="k-ticket">—</div></div>
+    <div class="kpi"><div class="l">Model çağrısı</div><div class="v" id="k-calls">0</div></div>
+    <div class="kpi"><div class="l">Token</div><div class="v" id="k-tokens">0</div></div>
+    <div class="kpi"><div class="l">Maskelenen alan</div><div class="v" id="k-masked">0</div></div>
+    <div class="kpi"><div class="l">Denetim kaydı</div><div class="v" id="k-audit">0</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card pane jira-pane">
+      <div class="jbar">
+        <span class="jproj" id="j-proj-av">UP</span>
+        <a class="jcrumb" href="#" onclick="return false">Ugur Payments</a>
+        <span class="jslash">/</span>
+        <span class="jtype" id="j-type"></span>
+        <span class="jcrumb jcur" id="j-key">UGURPAY-501</span>
+        <span class="spacer"></span>
+        <span class="jprop" title="Bu Jira gerçek değil: demoyla birlikte çalışan taklit bir sunucu (kurum erişimi yok).">sahte Jira · localhost</span>
+      </div>
+      <div class="jscroll" id="jscroll">
+        <div id="jira"><div class="jempty">Akışı başlatınca ticket ve yorumlar burada görünecek…</div></div>
+        <div class="jeditor">
+          <span class="jav jav-l" id="me-av">MD</span>
+          <div class="jed-main">
+            <textarea class="jta" id="cmt" rows="3" spellcheck="false" placeholder="/approve veya /reject &lt;sebep&gt; yazın"></textarea>
+            <div class="jed-actions">
+              <button class="jbtn jbtn-p" id="send">Yorum ekle</button>
+              <button class="jbtn jbtn-s" id="cancel">İptal</button>
+              <span class="jhint"><span class="jcode jfill" data-fill="/approve">/approve</span> <span class="jcode jfill" data-fill="/reject ">/reject &lt;sebep&gt;</span> · <span id="who">Mert Demir</span> olarak</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card pane">
+      <div class="ph">⚙ Maestro'nun iç işleyişi <span class="spacer"></span><span class="mini" id="run">—</span></div>
+      <div class="steps" id="steps"></div>
+      <div class="term" id="log"><div class="l-dim"># bekleniyor…</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px"><div class="bd mini" id="footer">
+    Sol taraf gerçekten sahte Jira sunucusuyla konuşur (yorum yazınca imzalı webhook Maestro'ya gider).
+    Sağ taraf Maestro'nun adımlarıdır — her adım gerçek paketleri çağırır.
+  </div></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let STATE = null;
+let JIRA = null;
+let SORT_DESC = false;
+let LAST_HTML = "";
+let LAST_COUNT = -1;
+
+function initials(name) {
+  return String(name).split(/[\s.]+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join("");
+}
+
+// ------------------------------------------------------------------ steps
+
+function renderSteps(state) {
+  $("steps").innerHTML = state.steps.map((s) => `
+    <div class="step ${s.state}">
+      <div class="dot">${s.state === "tamam" ? "✓" : s.state === "hata" ? "!" : s.state === "onay" ? "⏸" : s.id}</div>
+      <div>
+        <div class="t">${esc(s.title)} ${s.state === "onay" ? '<span class="tag a">onay bekliyor</span>' : s.state === "calisiyor" ? '<span class="tag b">çalışıyor</span>' : s.state === "hata" ? '<span class="tag r">hata</span>' : ""}</div>
+        <div class="h">${esc(s.hint)}</div>
+        ${s.notes.map((n) => `<div class="n">· ${esc(n)}</div>`).join("")}
+      </div>
+    </div>`).join("");
+}
+
+function renderLog(state) {
+  const box = $("log");
+  box.innerHTML = state.log.map((l) => `<div class="l-${l.level}">${esc(l.text)}</div>`).join("")
+    || '<div class="l-dim"># bekleniyor…</div>';
+  box.scrollTop = box.scrollHeight;
+}
+
+function renderState(state) {
+  STATE = state;
+  $("model").textContent = state.model;
+  $("k-ticket").textContent = state.ticketKey;
+  $("k-calls").textContent = state.llmCalls;
+  $("k-tokens").textContent = state.tokens;
+  $("k-masked").textContent = state.maskedFields;
+  $("k-audit").textContent = state.audit.records + (state.audit.verified === true ? " ✓" : state.audit.verified === false ? " ✗" : "");
+  $("run").textContent = state.runId ? "run " + state.runId : "—";
+  $("start").disabled = state.running;
+  $("start").textContent = state.finished ? "✓ tamamlandı" : state.running ? "akış sürüyor…" : "▶ Akışı başlat";
+  $("j-key").textContent = state.ticketKey;
+  renderSteps(state);
+  renderLog(state);
+  $("footer").innerHTML = state.failure
+    ? `<span class="err">✗ Akış durdu: ${esc(state.failure)}</span> — bu ekranda hata gizlenmez.`
+    : "Sol taraf gerçekten sahte Jira sunucusuyla konuşur (yorum yazınca imzalı webhook Maestro'ya gider). Sağ taraf Maestro'nun adımlarıdır — her adım gerçek paketleri çağırır.";
+}
+
+// -------------------------------------------------------- Jira wiki markup
+// Jira DC stores comments and descriptions as wiki markup — that is exactly
+// what `adfToWikiMarkup` posts — so the screen renders the same subset back:
+// h1..h6, *bold*, {{code}}, [label|href], `*`/`-` bullets, and the `\{`-style
+// escapes the adapter writes to keep ticket text from forging real markup.
+
+function unescapeWiki(value) {
+  return String(value).replace(/\\([\\{}[\]|*])/g, "$1");
+}
+
+function safeHref(href) {
+  return /^https?:\/\//i.test(href) ? href : "#";
+}
+
+function inlineWiki(src) {
+  const re = /\\([\\{}[\]|*])|\{\{([^}]*)\}\}|\*([^*\n]+)\*|\[([^|\]\n]+)\|([^\]\n]+)\]/g;
+  let out = "";
+  let index = 0;
+  let match;
+  while ((match = re.exec(src)) !== null) {
+    out += esc(src.slice(index, match.index));
+    if (match[1] !== undefined) out += esc(match[1]);
+    else if (match[2] !== undefined) out += `<span class="jcode">${esc(unescapeWiki(match[2]))}</span>`;
+    else if (match[3] !== undefined) out += `<strong>${inlineWiki(match[3])}</strong>`;
+    else out += `<a href="${esc(safeHref(match[5]))}" target="_blank" rel="noreferrer">${esc(unescapeWiki(match[4]))}</a>`;
+    index = re.lastIndex;
+  }
+  return out + esc(src.slice(index));
+}
+
+function renderWiki(src) {
+  const lines = String(src ?? "").split(/\r?\n/);
+  let html = "";
+  let para = [];
+  let list = null;
+  const flushPara = () => {
+    if (para.length > 0) html += `<p>${para.map(inlineWiki).join("<br>")}</p>`;
+    para = [];
+  };
+  const flushList = () => {
+    if (list !== null) html += `<ul>${list.map((item) => `<li>${inlineWiki(item)}</li>`).join("")}</ul>`;
+    list = null;
+  };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line === "") { flushPara(); flushList(); continue; }
+    const head = /^h([1-6])\.\s*(.*)$/.exec(line);
+    if (head) { flushPara(); flushList(); html += `<h4>${inlineWiki(head[2])}</h4>`; continue; }
+    const bullet = /^(?:\*+|-)\s+(.*)$/.exec(line);
+    if (bullet) { flushPara(); if (list === null) list = []; list.push(bullet[1]); continue; }
+    flushList();
+    para.push(line);
+  }
+  flushPara();
+  flushList();
+  return html || "<p></p>";
+}
+
+/**
+ * Maestro's own comments open with a heading (or a bold lead) that names what
+ * they are; Jira renders that shape as a `panel` macro, so the screen does too.
+ */
+function splitPanel(body) {
+  const lines = String(body ?? "").split(/\r?\n/);
+  const trim = (title) => title.replace(/\s*:\s*$/, "");
+  const head = /^h([1-6])\.\s*(.+)$/.exec(lines[0] ?? "");
+  if (head) return { title: trim(head[2]), rest: lines.slice(1).join("\n") };
+  const lead = /^\*([^*\n]+)\*(.*)$/.exec(lines[0] ?? "");
+  if (lead) return { title: trim(lead[1]), rest: [lead[2].trim(), ...lines.slice(1)].join("\n") };
+  return { title: null, rest: String(body ?? "") };
+}
+
+const PANEL_TONES = [
+  [/^[✅🎉]/u, "success"],
+  [/^[⚠⏳!]/u, "warning"],
+  [/^[❌✗]/u, "error"],
+  [/^[📋▶ℹ]/u, "info"],
+];
+
+function panelTone(title) {
+  for (const [pattern, tone] of PANEL_TONES) if (pattern.test(title)) return tone;
+  return "note";
+}
+
+// ------------------------------------------------------------ Jira screen
+
+const AVATAR_COLORS = ["#0052CC", "#6554C0", "#00875A", "#BF2600", "#FF8B00", "#00A3BF", "#403294", "#DE350B"];
+
+function avatarColor(seed) {
+  let hash = 0;
+  for (const char of String(seed)) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+function avatar(name, displayName, big) {
+  return `<span class="jav${big ? " jav-l" : ""}" style="background:${avatarColor(name)}" title="${esc(displayName)}">${esc(initials(displayName))}</span>`;
+}
+
+const ICON_STORY = '<svg class="jicon" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" fill="#63BA3C"/><path d="M4.6 3.8h6.8v8.4L8 9.9l-3.4 2.3z" fill="#fff"/></svg>';
+const ICON_TASK = '<svg class="jicon" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" fill="#4BADE8"/><path d="M6.9 11.2 4.2 8.5l1.1-1.1 1.6 1.6 3.8-3.8 1.1 1.1z" fill="#fff"/></svg>';
+const ICON_BUG = '<svg class="jicon" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" fill="#E5493A"/><circle cx="8" cy="8" r="3.4" fill="#fff"/></svg>';
+const ICON_UP = '<svg class="jicon" viewBox="0 0 16 16"><path d="M8 2.8 13 9h-3.3v4.2H6.3V9H3z" fill="#FF5630"/></svg>';
+const ICON_MID = '<svg class="jicon" viewBox="0 0 16 16"><rect x="2.5" y="5" width="11" height="2.2" rx="1.1" fill="#FFAB00"/><rect x="2.5" y="8.8" width="11" height="2.2" rx="1.1" fill="#FFAB00"/></svg>';
+const ICON_DOWN = '<svg class="jicon" viewBox="0 0 16 16"><path d="M8 13.2 3 7h3.3V2.8h3.4V7H13z" fill="#0065FF"/></svg>';
+
+function typeIcon(name) {
+  if (/bug|hata/i.test(name)) return ICON_BUG;
+  if (/task|görev|gorev/i.test(name)) return ICON_TASK;
+  return ICON_STORY;
+}
+
+function priorityIcon(name) {
+  if (/yüksek|yuksek|high|critical|kritik/i.test(name)) return ICON_UP;
+  if (/düşük|dusuk|low/i.test(name)) return ICON_DOWN;
+  return ICON_MID;
+}
+
+const STATUS_LOZENGE = { new: "lz-todo", indeterminate: "lz-prog", done: "lz-done" };
+
+/** `2026-08-09T11:02:44.120+0300` — the offset needs a colon for Date. */
+function parseJiraDate(value) {
+  const date = new Date(String(value).replace(/([+-]\d{2})(\d{2})$/, "$1:$2"));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function relativeTime(value) {
+  const date = parseJiraDate(value);
+  if (date === null) return "";
+  const seconds = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
+  if (seconds < 15) return "az önce";
+  if (seconds < 60) return `${seconds} saniye önce`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} dakika önce`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} saat önce`;
+  return `${Math.round(hours / 24)} gün önce`;
+}
+
+function absoluteTime(value) {
+  const date = parseJiraDate(value);
+  return date === null ? "" : date.toLocaleString("tr-TR");
+}
+
+/** Maestro reports progress by editing one pinned comment (M75), not by moving the workflow. */
+function maestroStatus(comments) {
+  for (let i = comments.length - 1; i >= 0; i -= 1) {
+    const match = /^\*▶ Maestro durum:\*\s*(.+)$/m.exec(comments[i].body ?? "");
+    if (match) return match[1].trim();
+  }
+  return null;
+}
+
+function maestroLozenge(text) {
+  if (text === null) return '<span class="lz lz-todo">başlamadı</span>';
+  const tone = /tamamland|birleşti/i.test(text) ? "lz-done" : /onay|bekle/i.test(text) ? "lz-move" : "lz-prog";
+  return `<span class="lz ${tone}">${esc(text)}</span>`;
+}
+
+function renderComment(comment, users) {
+  const app = comment.author === "maestro-svc";
+  const name = comment.displayName ?? users?.[comment.author]?.displayName ?? comment.author;
+  let body;
+  if (app) {
+    const { title, rest } = splitPanel(comment.body);
+    const inner = renderWiki(rest);
+    body = title === null
+      ? `<div class="jrt">${inner}</div>`
+      : `<div class="jpanel jp-${panelTone(title)}"><div class="jp-h">${inlineWiki(title)}</div><div class="jrt">${inner}</div></div>`;
+  } else {
+    body = `<div class="jrt">${renderWiki(comment.body)}</div>`;
+  }
+  return `
+    <div class="jcm">
+      ${avatar(comment.author, name, false)}
+      <div class="jcm-main">
+        <div class="jcm-h">
+          <span class="jcm-who">${esc(name)}</span>
+          ${app ? '<span class="japp" title="Jira uygulaması tarafından yazıldı">APP</span>' : ""}
+          <span class="jcm-time" title="${esc(absoluteTime(comment.created))}">bir yorum ekledi · ${esc(relativeTime(comment.created))}</span>
+        </div>
+        <div class="jcm-b">${body}</div>
+      </div>
+    </div>`;
+}
+
+function renderJira() {
+  if (JIRA === null) return;
+  const { issue, comments, users } = JIRA;
+  const reporter = users?.[issue.reporter]?.displayName ?? issue.reporter;
+  const assignee = issue.assignee === null ? null : users?.[issue.assignee]?.displayName ?? issue.assignee;
+  const ordered = SORT_DESC ? comments.slice().reverse() : comments;
+
+  const me = users?.[STATE.approver]?.displayName ?? STATE.approver;
+  $("who").textContent = me;
+  $("me-av").textContent = initials(me);
+  $("me-av").style.background = avatarColor(STATE.approver);
+  $("j-type").innerHTML = typeIcon(issue.issueType);
+
+  const details = `
+    <div class="jdetails"><div class="jfields">
+      <div class="jk">Tür</div><div class="jv">${typeIcon(issue.issueType)}${esc(issue.issueType)}</div>
+      <div class="jk">Öncelik</div><div class="jv">${priorityIcon(issue.priority)}${esc(issue.priority)}</div>
+      <div class="jk">Durum</div><div class="jv"><span class="lz ${STATUS_LOZENGE[issue.statusCategory] ?? "lz-prog"}">${esc(issue.status)}</span></div>
+      <div class="jk">Atanan</div><div class="jv">${assignee === null ? '<span class="jav jav-none">?</span>Atanmamış' : avatar(issue.assignee, assignee, false) + esc(assignee)}</div>
+      <div class="jk">Raporlayan</div><div class="jv">${avatar(issue.reporter, reporter, false)}${esc(reporter)}</div>
+      <div class="jk">Bileşenler</div><div class="jv">${esc(issue.components.join(", ")) || "Yok"}</div>
+      <div class="jk">Etiketler</div><div class="jv">${issue.labels.map((l) => `<span class="jlabel">${esc(l)}</span>`).join("") || "Yok"}</div>
+      <div class="jk">Maestro</div><div class="jv">${maestroLozenge(maestroStatus(comments))}</div>
+      <div class="jk">Oluşturuldu</div><div class="jv" title="${esc(absoluteTime(issue.created))}">${esc(relativeTime(issue.created))}</div>
+      <div class="jk">Güncellendi</div><div class="jv" title="${esc(absoluteTime(issue.updated))}">${esc(relativeTime(issue.updated))}</div>
+    </div></div>`;
+
+  const html = `
+    <h1 class="jsum">${esc(issue.summary)}</h1>
+    <div class="jmod"><div class="jmodh">Ayrıntılar</div>${details}</div>
+    <div class="jmod"><div class="jmodh">Açıklama</div><div class="jrt">${renderWiki(issue.description)}</div></div>
+    <div class="jmod">
+      <div class="jacth">
+        <span class="jmodh">Yorumlar</span><span class="jcount">${comments.length}</span>
+        <span class="spacer"></span>
+        <button class="jsort" id="j-sort">${SORT_DESC ? "Yeniden eskiye ↓" : "Eskiden yeniye ↑"}</button>
+      </div>
+      ${ordered.map((comment) => renderComment(comment, users)).join("") || '<div class="jempty">Henüz yorum yok.</div>'}
+    </div>`;
+
+  if (html !== LAST_HTML) {
+    LAST_HTML = html;
+    $("jira").innerHTML = html;
+    $("j-sort").onclick = () => { SORT_DESC = !SORT_DESC; LAST_HTML = ""; renderJira(); };
+  }
+  if (comments.length !== LAST_COUNT) {
+    LAST_COUNT = comments.length;
+    if (!SORT_DESC) $("jscroll").scrollTop = $("jscroll").scrollHeight;
+  }
+}
+
+async function refreshJira() {
+  if (!STATE) return;
+  try {
+    const res = await fetch("/api/jira/state");
+    JIRA = await res.json();
+    renderJira();
+  } catch (error) {
+    $("jira").innerHTML = '<div class="jfail">Sahte Jira sunucusuna ulaşılamadı.</div>';
+    LAST_HTML = "";
+  }
+}
+
+// ---------------------------------------------------------------- actions
+
+$("start").onclick = async () => {
+  $("start").disabled = true;
+  await fetch("/api/start", { method: "POST" });
+};
+
+$("cancel").onclick = () => { $("cmt").value = ""; $("cmt").blur(); };
+
+for (const chip of document.querySelectorAll(".jfill")) {
+  chip.onclick = () => { $("cmt").value = chip.dataset.fill; $("cmt").focus(); };
+}
+
+$("send").onclick = async () => {
+  const body = $("cmt").value.trim();
+  if (!body || !STATE) return;
+  $("send").disabled = true;
+  try {
+    await fetch("/api/jira/comment", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ author: STATE.approver, body }),
+    });
+    $("cmt").value = "";
+    await refreshJira();
+  } finally {
+    $("send").disabled = false;
+  }
+};
+
+const events = new EventSource("/api/events");
+events.onmessage = (event) => {
+  renderState(JSON.parse(event.data));
+  void refreshJira();
+};
+fetch("/api/state")
+  .then((r) => r.json())
+  .then((state) => {
+    renderState(state);
+    return refreshJira();
+  });
+setInterval(refreshJira, 1500);
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+# Maestro Stack — BFF (7001) + Studio (7000), gerçek Postgres (user-level birim).
+#
+# Kurulum: ops/systemd/kur.sh  (kopyalar + daemon-reload + enable; START ETMEZ)
+# Loglar:  journalctl --user -u maestro-stack -f
+#
+# maestro-baslat.sh'ın "real-users.ts" adımının systemd karşılığıdır; aynı
+# giriş noktası, aynı env varsayılanları. %h = kullanıcının ev dizini.
+
+[Unit]
+Description=Maestro Stack (BFF 7001 + Studio 7000, gercek Postgres)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/coder/maestro
+# maestro/.env; baştaki "-" dosya yoksa birimi kırmaz.
+EnvironmentFile=-%h/coder/maestro/.env
+# .env'de yoksa maestro-baslat.sh ile aynı varsayılanlar (EnvironmentFile ezer).
+Environment=DATABASE_URL=postgresql://maestro:DEGISTIR-parola-uret-openssl-rand-hex-24@localhost:55432/maestro
+Environment=MAESTRO_STUDIO_HOST=0.0.0.0
+Environment=MAESTRO_STUDIO_ALLOWED_HOSTS=coder.uguryildiz.tech,localhost
+# pnpm/node nvm'den gelir — user unit'in PATH'i çıplaktır, elle verilir.
+Environment=PATH=%h/.nvm/versions/node/v24.15.0/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env pnpm -F @maestro/demo-stack exec tsx src/bin/real-users.ts
+# Hiç kapanmayan worker: hangi sebeple ölürse ölsün 5 sn sonra yeniden başlar.
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+# Boot'ta (kullanıcı oturumu/linger açıldığında) otomatik başlasın.
+WantedBy=default.target

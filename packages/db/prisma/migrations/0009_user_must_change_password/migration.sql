@@ -1,0 +1,22 @@
+-- First-run bootstrap: a forced password change on the seeded admin (banking
+-- standard).
+--
+-- A fresh, clean install has to be loggable-into by SOMEONE, or nobody can ever
+-- reach the screen that creates the first real account. The platform's own
+-- password policy (apps/bff/src/auth/password.ts — min 12, upper/lower/digit/
+-- symbol, M8) rejects a memorable bootstrap credential on purpose, so the seed
+-- plants ONE admin (`admin`/`admin123`) whose password is policy-EXEMPT because
+-- it MUST be changed immediately. This column is the "must be changed" fact.
+--
+-- While it is true the BFF guard restricts the session to change-password,
+-- logout and session only — the bootstrap admin can do NOTHING else. The
+-- change-password endpoint runs the full policy on the new password (so it
+-- cannot be set back to `admin123`) and clears this flag.
+--
+-- DEFAULT false is the load-bearing part: every account an admin later creates
+-- through the normal policy-checked provision path is unrestricted from its
+-- first login, and every existing row (there are none on a fresh install, but a
+-- pilot may already hold real accounts) is left unrestricted too. Only the seed
+-- ever sets this true.
+ALTER TABLE "User"
+  ADD COLUMN "mustChangePassword" BOOLEAN NOT NULL DEFAULT false;

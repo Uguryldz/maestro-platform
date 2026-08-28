@@ -1,0 +1,63 @@
+{
+  "subscriptionId": "7f6a2b91-3c4d-4e5f-8a9b-0c1d2e3f4a5b",
+  "notificationId": 17,
+  "id": "e1a2b3c4-d5e6-4f70-8192-a3b4c5d6e7f8",
+  "eventType": "build.complete",
+  "publisherId": "tfs",
+  "message": { "text": "Build 20260808.3 succeeded" },
+  "detailedMessage": { "text": "Build 20260808.3 succeeded for pull request 128" },
+  "resource": {
+    "_links": {
+      "self": {
+        "href": "https://dev.azure.com/ugurbank/UgurPay/_apis/build/Builds/4711"
+      },
+      "web": {
+        "href": "https://dev.azure.com/ugurbank/UgurPay/_build/results?buildId=4711"
+      }
+    },
+    "id": 4711,
+    "buildNumber": "20260808.3",
+    "status": "completed",
+    "result": "succeeded",
+    "queueTime": "2026-08-08T10:11:58.4130000Z",
+    "startTime": "2026-08-08T10:12:03.9870000Z",
+    "finishTime": "2026-08-08T10:14:22.7100000Z",
+    "url": "https://dev.azure.com/ugurbank/UgurPay/_apis/build/Builds/4711",
+    "definition": {
+      "id": 12,
+      "name": "ugurpay-pr-validation",
+      "path": "\\",
+      "type": "build",
+      "queueStatus": "enabled"
+    },
+    "project": {
+      "id": "1c9f2b77-3d64-45e0-9a2b-7f4c6d81ea05",
+      "name": "UgurPay",
+      "state": "wellFormed",
+      "visibility": "private"
+    },
+    "reason": "pullRequest",
+    "sourceBranch": "refs/pull/128/merge",
+    "sourceVersion": "b7a41f3c9d825e0641a2b3c4d5e6f708192a3b4c",
+    "triggerInfo": {
+      "pr.number": "128",
+      "pr.sourceBranch": "refs/heads/feature/UGURPAY-4312-iban-validation",
+      "pr.sourceSha": "b7a41f3c9d825e0641a2b3c4d5e6f708192a3b4c",
+      "pr.targetBranch": "refs/heads/main",
+      "pr.triggeredBy.displayName": "Maestro Service"
+    },
+    "priority": "normal",
+    "repository": {
+      "id": "5f8c3a1e-9b2d-4c7a-8e11-2b6d4f0a9c33",
+      "type": "TfsGit",
+      "name": "ugurpay"
+    }
+  },
+  "resourceVersion": "2.0",
+  "resourceContainers": {
+    "collection": { "id": "d9a1c0f2-4b6e-4a8c-9d0e-1f2a3b4c5d6e" },
+    "account": { "id": "a0b1c2d3-e4f5-4061-8273-9a8b7c6d5e4f" },
+    "project": { "id": "1c9f2b77-3d64-45e0-9a2b-7f4c6d81ea05" }
+  },
+  "createdDate": "2026-08-08T10:14:23.1230000Z"
+}

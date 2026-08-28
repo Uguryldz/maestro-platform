@@ -1,0 +1,103 @@
+digraph MaestroV2Flow {
+  rankdir=TB;
+  bgcolor="#FAFAFA";
+  compound=true;
+  nodesep=0.35;
+  ranksep=0.45;
+  fontname="Helvetica";
+  node [fontname="Helvetica", fontsize=11, style="filled,rounded", shape=box, margin="0.22,0.13"];
+  edge [fontname="Helvetica", fontsize=9, color="#475569"];
+
+  labelloc="t";
+  label=<<FONT POINT-SIZE="20"><B>Maestro — Süreç Akışı (Banka Sürümü)</B></FONT><BR/>
+        <FONT POINT-SIZE="11" COLOR="#475569">değişen adımlar KALIN çerçeveli · yapan roller = sandbox'ta Claude Agent SDK · testler GERÇEKTEN koşar</FONT><BR/>
+        <FONT POINT-SIZE="9" COLOR="#94A3B8">TASLAK — v1 akışının revizyonu · maestro/plan/masterplan.md §6</FONT>>;
+
+  start [label="JIRA TICKET\nwebhook → BFF", shape=oval, fillcolor="#1E293B", fontcolor="white", penwidth=2];
+  done  [label="DONE\nPR merge + Jira → Done\n+ KANIT PAKETİ arşivde", shape=oval, fillcolor="#10B981", fontcolor="white", penwidth=2];
+
+  mode [label="0. WORK MODE\nfull_auto · ai_assist · human_lead · human_only", fillcolor="#F1F5F9", color="#64748B"];
+
+  // AI adımları (mavi) — değişenler kalın
+  intake  [label="2. INTAKE  (AI — düşünen)\nticket tam mı? · work mode önerisi", fillcolor="#DBEAFE", color="#2563EB"];
+  analyst [label="3. ANALYST  (AI — düşünen)\nanaliz · teknik tasarım · risk\ngirdi: Agent SDK repo keşif özeti", fillcolor="#DBEAFE", color="#2563EB", penwidth=2.4];
+  dev     [label="6a. ENGINEER  (AI — YAPAN)\nsandbox'ta CLAUDE AGENT SDK oturumu\nrepo keşfi · kod · lint/build/unit\nbranch push", fillcolor="#DBEAFE", color="#2563EB", penwidth=2.8];
+  devrev  [label="6c. DEV-REVIEWER  (AI — düşünen)\ngerçek diff + koşum raporu üzerinde", fillcolor="#DBEAFE", color="#2563EB"];
+  tdes    [label="7. TEST-DESIGNER  (AI — düşünen)\nGherkin senaryolar + negatif kapsam", fillcolor="#DBEAFE", color="#2563EB"];
+  trev    [label="8. TEST-REVIEWER  (AI — düşünen)\ncoverage · test pyramid (4-göz)", fillcolor="#DBEAFE", color="#2563EB"];
+  trun    [label="10. TEST-ENGINEER  (AI — YAPAN)\nsandbox'ta Agent SDK: senaryo → test kodu\nGERÇEK koşum · gerçek coverage/flaky\n(v1: LLM sonuç uyduruyordu — kapandı)", fillcolor="#DBEAFE", color="#2563EB", penwidth=2.8];
+
+  // Otomatik kapılar (mor)
+  scan [label="6b. GÜVENLİK TARAMASI\ngitleaks · semgrep · trivy\nGERÇEKTEN ÇAĞRILIR · fail-closed\nimajlar dijest-pinli", fillcolor="#EDE9FE", color="#7C3AED", penwidth=2.8];
+  ci   [label="10b. CI GATE\nADO branch policy → build validation\nbuild.complete Service Hook → sinyal", fillcolor="#EDE9FE", color="#7C3AED", penwidth=2.4];
+
+  // İnsan kapıları (turuncu altıgen) — hepsi kimlik doğrulamalı
+  clar [label="2b. CLARIFICATION\nreporter yanıtı · SLA 72h", shape=hexagon, fillcolor="#FEF3C7", color="#D97706"];
+  po   [label="4. PO ONAYI\nJira/AD grup doğrulamalı", shape=hexagon, fillcolor="#FED7AA", color="#EA580C"];
+  tl   [label="5. TECH LEAD ONAYI\nteknik tasarım · SoD", shape=hexagon, fillcolor="#FED7AA", color="#EA580C"];
+  qa1  [label="9. QA ONAYI\nsenaryolar yeterli mi", shape=hexagon, fillcolor="#FED7AA", color="#EA580C"];
+  qa2  [label="11. QA SONUÇ ONAYI\ngerçek test raporu", shape=hexagon, fillcolor="#FED7AA", color="#EA580C"];
+  pr   [label="12. PR ONAYI\nTech Lead · 4-göz + SoD\nADO'da min 1 insan reviewer", shape=hexagon, fillcolor="#FED7AA", color="#EA580C"];
+
+  // Yeni adımlar
+  prloop [label="12b. PR YORUM DÖNGÜSÜ  (YENİ — v1'de yoktu)\nADO PR thread → 'changes requested' sinyali", fillcolor="#EDE9FE", color="#7C3AED", penwidth=2.8];
+  kanit  [label="13. KANIT PAKETİ  (YENİ)\nanaliz + diff + test raporu + tarama\n+ onay zinciri + maliyet → StoragePort\nJira'ya özet + link · SIEM'e audit", fillcolor="#DCFCE7", color="#16A34A", penwidth=2.8];
+
+  // İlerleme
+  edge [color="#059669", penwidth=1.7];
+  start -> mode;
+  mode -> intake;
+  intake -> analyst [label="  tam"];
+  analyst -> po;
+  po -> tl   [label="  /approve"];
+  tl -> dev  [label="  /approve"];
+  dev -> scan;
+  scan -> devrev [label="  temiz"];
+  devrev -> tdes [label="  APPROVE"];
+  tdes -> trev;
+  trev -> qa1;
+  qa1 -> trun [label="  /approve"];
+  trun -> ci;
+  ci -> qa2 [label="  yeşil"];
+  qa2 -> pr [label="  /approve"];
+  pr -> prloop [label="  /approve"];
+  prloop -> kanit [label="  thread'ler kapalı\n  + merge"];
+  kanit -> done;
+
+  // Ret / döngüler
+  edge [color="#DC2626", style=dashed, penwidth=1.2, fontcolor="#DC2626"];
+  intake -> clar   [label="eksik bilgi"];
+  clar -> intake   [label="güncellendi"];
+  po -> analyst    [label="/reject"];
+  qa1 -> tdes      [label="/reject"];
+  ci -> dev        [label="fail"];
+  prloop -> dev    [label="changes requested"];
+  scan -> dev      [label="bulgu → fail-closed"];
+  devrev -> dev    [label="CHANGES"];
+
+  // Work mode farkları
+  subgraph cluster_mode {
+    label="WORK MODE DAVRANIŞI  (v1'in ölü bekleme hatası kapandı)";
+    style="filled,rounded"; fillcolor="#FFF7ED"; color="#FB923C";
+    fontname="Helvetica-Bold"; fontsize=12;
+    node [shape=box, fillcolor="#FFFFFF", color="#EA580C", fontsize=10];
+    m1 [label="full_auto: 6a/10'u Agent SDK yapar"];
+    m2 [label="ai_assist / human_lead: insan kodlar\nPR açılınca ADO webhook → SİNYAL gelir\n(v1: hiç gelmeyen state.prId bekleniyordu)"];
+    m3 [label="/ai-takeover · /ai-handoff\nmid-flow devir korunur"];
+    m1 -> m2 -> m3 [style=invis];
+  }
+
+  // Kontroller
+  subgraph cluster_controls {
+    label="PROAKTİF KONTROLLER (v2)";
+    style="filled,rounded"; fillcolor="#F8FAFC"; color="#94A3B8";
+    fontname="Helvetica-Bold"; fontsize=12;
+    node [shape=box, fillcolor="#FFFFFF", color="#94A3B8", fontsize=10];
+    c1 [label="Bütçe: LLM Gateway'de TEK kaynak\nworkflow + aylık · %80 uyarı · %100 stop"];
+    c2 [label="SoD matrisi: üreten ≠ onaylayan ≠ merge eden\nAI = ayrı servis hesabı"];
+    c3 [label="Rate limit: gateway'de atomik token bucket"];
+    c4 [label="Audit: tek yazarlı hash-zincir\n+ günlük anchor + SIEM"];
+    c5 [label="PII: LLM sınırında maske\nartefakta MASKELİ hali yazılır"];
+    c1 -> c2 -> c3 -> c4 -> c5 [style=invis];
+  }
+}

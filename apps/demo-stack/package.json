@@ -1,0 +1,32 @@
+{
+  "name": "@maestro/demo-stack",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Development-only demo stack: the REAL BFF (buildServer) over in-memory drivers and seeded data, plus the Studio dev server. No Postgres, no Temporal, no Jira/ADO/LLM.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/bin/up.ts",
+    "start:bff": "tsx src/bin/bff.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@maestro/audit": "workspace:*",
+    "@maestro/bff": "workspace:*",
+    "@maestro/config": "workspace:*",
+    "@maestro/db": "workspace:*",
+    "@maestro/contracts": "workspace:*",
+    "@maestro/ports": "workspace:*",
+    "fastify": "^5.2.0",
+    "tsx": "^4.23.11",
+    "@maestro/adapter-jira": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.0"
+  }
+}

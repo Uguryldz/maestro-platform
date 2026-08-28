@@ -1,0 +1,29 @@
+{
+  "repository": {
+    "id": "5f8c3a1e-9b2d-4c7a-8e11-2b6d4f0a9c33",
+    "name": "ugurpay",
+    "url": "https://dev.azure.com/ugurbank/UgurPay/_apis/git/repositories/5f8c3a1e-9b2d-4c7a-8e11-2b6d4f0a9c33",
+    "project": { "id": "1c9f2b77-3d64-45e0-9a2b-7f4c6d81ea05", "name": "UgurPay" }
+  },
+  "pullRequestId": 128,
+  "codeReviewId": 128,
+  "status": "active",
+  "createdBy": {
+    "displayName": "Maestro Service",
+    "id": "3b8c1f24-77a2-4f3d-9b60-5e1d2c9a4f77",
+    "uniqueName": "maestro-svc@ugurbank.local"
+  },
+  "creationDate": "2026-08-08T09:58:11.457Z",
+  "title": "[AI] UGURPAY-4312 IBAN validation",
+  "description": "Analysis summary and evidence link.",
+  "sourceRefName": "refs/heads/feature/UGURPAY-4312-iban-validation",
+  "targetRefName": "refs/heads/main",
+  "mergeStatus": "queued",
+  "isDraft": true,
+  "mergeId": "0f0d9e6a-4a2f-4b1a-b6f2-9a1c0dbb7e21",
+  "lastMergeSourceCommit": { "commitId": "b7a41f3c9d825e0641a2b3c4d5e6f708192a3b4c" },
+  "lastMergeTargetCommit": { "commitId": "9c1e5a3b7d2f4068a1b3c5d7e9f0a2b4c6d8e0f1" },
+  "reviewers": [],
+  "url": "https://dev.azure.com/ugurbank/UgurPay/_apis/git/repositories/ugurpay/pullRequests/128",
+  "supportsIterations": true
+}

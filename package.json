@@ -1,0 +1,41 @@
+{
+  "name": "maestro",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Jira-driven, AI-powered SDLC automation platform (internal)",
+  "license": "SEE LICENSE IN LICENSE",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "gate": "node scripts/gate.mjs",
+    "demo:up": "pnpm --filter @maestro/demo-stack run start",
+    "demo:bff": "pnpm --filter @maestro/demo-stack run start:bff",
+    "deploy:up": "make -C deploy up",
+    "deploy:down": "make -C deploy down",
+    "deploy:logs": "make -C deploy logs",
+    "deploy:ps": "make -C deploy ps",
+    "deploy:build": "make -C deploy build",
+    "deploy:migrate": "make -C deploy migrate",
+    "deploy:config": "make -C deploy config"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "eslint": "^9.20.0",
+    "turbo": "^2.5.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.24.0"
+  }
+}

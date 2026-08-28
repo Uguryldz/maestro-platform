@@ -1,0 +1,283 @@
+# syntax=docker/dockerfile:1.7
+#
+# The Node service image: BFF, Temporal worker, and the migration job.
+#
+# One Dockerfile with an `ENTRYPOINT_SCRIPT` argument rather than three nearly
+# identical ones. The three services share every layer that matters — the same
+# workspace, the same dependency graph, the same Prisma client — so building
+# them separately would triple the build time and, worse, let them drift: a
+# dependency bump applied to two of three Dockerfiles is a bug that only shows
+# up in production, in whichever service was forgotten.
+#
+# Stages:
+#   base    the toolchain
+#   deps    dependency install ALONE — this layer changes only when a manifest
+#           does, so editing a .ts file reuses a 450-package install
+#   build   the TypeScript compile: source in, `dist/` out
+#   runner  what ships: compiled JavaScript, non-root, no source, no toolchain
+#
+# `--frozen-lockfile` throughout: a build that would have to change the
+# lockfile is a build whose dependency graph nobody reviewed.
+#
+# ── why this image contains no TypeScript ────────────────────────────────────
+#
+# It used to. The runtime was `node --import tsx entry.ts`, which meant the
+# image had to carry the source it executed, and `COPY . .` carried ALL of it —
+# every package, not just the three entrypoints' closure. That is defensible
+# for a private registry and indefensible for `uguryldz/maestro-node`, which is
+# public: anyone who pulled the image had the platform's source.
+#
+# So the workspace is compiled here and only `dist/` ships. `tsx` is gone from
+# the runtime, and with it the reason to ship `.ts` at all.
+#
+# A BUNDLER (esbuild/rollup, one flat file per entrypoint) was the obvious
+# alternative and is the wrong tool here, for one specific reason:
+# `packages/workflows` is bundled AGAIN at runtime, by Temporal's own webpack,
+# because `Worker.create({ workflowsPath })` compiles the workflow into a V8
+# isolate whose determinism guarantees depend on module identity. Pre-flattening
+# that graph hands Temporal an input it does not expect and whose shared module
+# state is precisely what breaks workflow REPLAY — a failure that appears on the
+# second run of a ticket, not the first, and looks like data corruption rather
+# than a build mistake. `tsc` keeps the module graph one-to-one with the source,
+# so the sandbox sees the shape it has always seen.
+
+ARG NODE_IMAGE=node:24-bookworm-slim
+
+FROM ${NODE_IMAGE} AS base
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH \
+    CI=true
+# OpenSSL, for Prisma's query engine.
+#
+# `node:24-bookworm-slim` does not carry it, and Prisma then warns that it
+# "failed to detect the libssl/openssl version to use" and falls back to a
+# guess. The guess happened to work here; a wrong guess is a runtime failure in
+# the engine rather than a build error, which is the worst place to find out.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+RUN corepack enable
+WORKDIR /app
+
+# ── dependencies ─────────────────────────────────────────────────────────────
+FROM base AS deps
+# Manifests only. Their content is what Docker caches this layer on.
+#
+# The whole tree is copied and then reduced to its manifests, rather than one
+# COPY line per package. The enumerated list was five packages out of date by
+# wave 5 (studio, runner-agent, demo-stack, cache, adapter-ldap), and the
+# failure that produced was not a missing COPY — it was
+# `ERR_PNPM_NO_OFFLINE_TARBALL` in a later stage, because this layer had never
+# fetched the tarballs those packages need. A build that breaks in a different
+# stage than the one holding the mistake is a build nobody diagnoses quickly,
+# and any hand-maintained list goes stale on the next new package.
+#
+# `COPY --parents` would express this in one line but needs a newer BuildKit
+# than this repo builds with; the prune below is the portable equivalent.
+COPY . /src
+RUN set -eu; \
+    cd /src; \
+    find . -name node_modules -prune -o -name package.json -print \
+      | while read -r m; do install -D "$m" "/app/$m"; done; \
+    install -D pnpm-lock.yaml      /app/pnpm-lock.yaml; \
+    install -D pnpm-workspace.yaml /app/pnpm-workspace.yaml; \
+    rm -rf /src
+# Scripts are skipped here because `@maestro/db`'s postinstall runs
+# `prisma generate`, and the schema is not in this layer yet.
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts
+
+# ── build ────────────────────────────────────────────────────────────────────
+# Where the TypeScript becomes JavaScript. Nothing from this stage ships except
+# the `dist/` directories and the rewritten manifests — the compiler, the source
+# and the dev dependencies all stay behind, which is the point of splitting it
+# out rather than compiling in the runner.
+FROM deps AS build
+COPY . .
+# The source COPY shadows the workspace symlinks under node_modules/@maestro,
+# so the install is repeated (offline, from the same store) to restore them.
+# Still `--ignore-scripts`: `@maestro/db`'s postinstall would fire
+# `prisma generate` here implicitly, and this stage runs it explicitly on the
+# next line instead — where a failure is attributable to a named step rather
+# than to an install that quietly did more than install.
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --offline --ignore-scripts
+
+# The Prisma client, BEFORE the compile rather than after it.
+#
+# `@maestro/db` imports `PrismaClient` and the `Prisma` namespace as TYPES, and
+# those types do not exist until `prisma generate` writes them — the client
+# shipped on npm is a stub whose real surface is generated from the schema.
+# Without this, `tsc` fails on 24 errors that all read "Module '@prisma/client'
+# has no exported member 'PrismaClient'", which looks like a broken dependency
+# and is really a missing codegen step. The runner stage generates it AGAIN
+# into its own production-only node_modules; this copy exists purely so the
+# compiler has types to check against.
+RUN pnpm --filter @maestro/db exec prisma generate --schema prisma/schema.prisma
+
+# Compile, then repoint every manifest's `exports` from `./src/*.ts` to
+# `./dist/*.js`.
+#
+# The second half is not cosmetic. pnpm resolves a workspace package through its
+# `exports` map, so an `import "@maestro/contracts"` inside the image would
+# otherwise resolve to `src/index.ts` — a file this image deliberately does not
+# have. The rewrite happens HERE and is never committed: in a working tree the
+# manifests keep pointing at `src/`, so `pnpm typecheck`, `pnpm test` and `tsx`
+# all keep working with no build step and no stale `dist/` to forget to refresh.
+RUN node scripts/build-dist.mjs \
+ && node scripts/build-dist.mjs --rewrite-exports
+
+# ── production dependencies ──────────────────────────────────────────────────
+# The runtime's node_modules, built as root (where the pnpm store is readable)
+# so the runner stage can copy it in already owned by the app user.
+#
+# Separate from `deps` because that stage installs EVERYTHING — typescript,
+# vitest, tsx, the compiler this image no longer needs. `--prod` selects the
+# subset the three entrypoints actually import. It reads the manifests from
+# `build`, not from the source tree, because their `exports` now say `dist/`.
+FROM base AS prod-deps
+COPY --from=build /app/pnpm-lock.yaml /app/pnpm-workspace.yaml /app/package.json ./
+RUN --mount=type=bind,from=build,source=/app,target=/build \
+    set -eu; \
+    cd /build; \
+    find . -name node_modules -prune -o -name package.json -print \
+      | while read -r m; do install -D "$m" "/app/$m"; done
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --offline --prod --ignore-scripts
+
+# ── runner ───────────────────────────────────────────────────────────────────
+FROM base AS runner
+ENV NODE_ENV=production
+
+# The unprivileged user is created FIRST, before anything writes to /app, and
+# `/app` is handed to it up front. A compromised dependency in a Node process
+# must not also be root inside the container.
+#
+# The ordering is the whole point, and it is what the previous version of this
+# file could not do. It created the user LAST and then ran `chown -R` over the
+# finished tree, which cost ~850 MB in a layer that duplicated node_modules;
+# the note here said the cheap fix was worth doing and not worth doing the
+# night before an image was cut. The blocker was that the install in this stage
+# needed pnpm's BuildKit cache mount, and a non-root user cannot read a store
+# the root-owned deps stage wrote.
+#
+# Splitting the compile into its own `build` stage dissolved that. The store is
+# still read as root — but by the BUILD stage, which is thrown away. Everything
+# this stage installs is written straight into a directory the app user already
+# owns, so the ownership is a property of the first write instead of a second
+# copy of the tree. Same result, one layer instead of two.
+RUN groupadd --system --gid 10001 maestro \
+ && useradd  --system --uid 10001 --gid maestro --home-dir /app --shell /usr/sbin/nologin maestro \
+ && chown maestro:maestro /app
+
+# Production dependencies, installed in a stage of their own and COPIED in.
+#
+# The install cannot happen in this stage. It needs pnpm's BuildKit cache
+# mount, that store is written by a root-owned earlier stage, and this stage
+# runs as uid 10001 — a cache mount re-owned with `uid=` is a DIFFERENT,
+# empty store, so `--offline` finds nothing and fails on the first tarball.
+# That is the same wall the old `chown -R` was working around, and seeding the
+# re-owned store by hand does not clear it: pnpm's store is content-addressed
+# and its index does not survive being copied into place.
+#
+# So the install stays root, in `prod-deps` above, and only its RESULT crosses
+# the boundary — `COPY --from` applies ownership as it writes, which is the one
+# way to get a correctly-owned tree without a second copy of it. That is what
+# removes the ~850 MB duplicate-node_modules layer the previous version of this
+# file documented as "worth doing and not worth doing the night before an image
+# is cut".
+#
+# `--offline` is preserved where it belongs — on the install itself, in
+# `prod-deps`. It forbids the network outright, so a tarball missing from the
+# store fails at BUILD time rather than in a bank's air-gapped environment at
+# container start.
+COPY --from=prod-deps --chown=10001:10001 /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=10001:10001 /app/pnpm-lock.yaml /app/pnpm-workspace.yaml /app/package.json ./
+USER 10001:10001
+
+# The compiled output, and only that. One COPY per workspace package would go
+# stale exactly like the deps list did, so the whole `/app` tree is taken and
+# the sources are dropped afterwards — see the prune below.
+COPY --from=build --chown=10001:10001 /app/apps ./apps
+COPY --from=build --chown=10001:10001 /app/packages ./packages
+
+# Drop everything that is not the compiled artefact.
+#
+# An ALLOW-list — keep `dist/`, `package.json` and a named set of data
+# directories, delete the rest — rather than a deny-list naming `src/`. A
+# deny-list only removes what someone remembered to name, and the first attempt
+# proved the point: it swept `src/` and still shipped
+# `apps/deploy/scripts/*.ts` and `apps/studio/vite.config.ts`, because those
+# sit OUTSIDE `src/` and nothing had named them. With an allow-list a new
+# stray file is excluded by default instead of shipping until someone notices.
+#
+# The workspace directories that are not in the three entrypoints' dependency
+# closure go entirely: `apps/studio` is a Vite app with its OWN image,
+# `apps/demo`, `apps/demo-stack`, `apps/runner-agent`, `packages/cache` and
+# `packages/test-kit` are development or test-only. They were never imported
+# here; they were shipping because `COPY . .` copied them.
+#
+# `prisma/` is KEPT, deliberately. The `migrate` entrypoint shells out to
+# `prisma migrate deploy`, which reads `schema.prisma` and the
+# `migrations/*.sql` it applies — those are data the runtime needs, not source.
+# A `dist`-only prune that swept them out would produce an image whose
+# migration job fails on a fresh database with "Could not find the schema",
+# which reads like a configuration problem and is not one. `locales/` and
+# `data/` are kept for the same reason: `@maestro/config` and
+# `@maestro/agent-roles` import JSON from them at runtime, and `tsc` does not
+# copy a file it did not compile.
+#
+# The `.map` files go too: a source map whose `.ts` is absent cannot be opened
+# by a debugger, so it is dead weight — the file and line in the stack trace
+# survive without it.
+RUN set -eu; \
+    keep_data='prisma locales data'; \
+    for pkg in /app/apps/*/ /app/packages/*/; do \
+      if [ ! -d "$pkg/dist" ]; then rm -rf "$pkg"; continue; fi; \
+      for entry in "$pkg"* "$pkg".[!.]*; do \
+        [ -e "$entry" ] || continue; \
+        name=$(basename "$entry"); \
+        case " dist node_modules package.json $keep_data " in \
+          *" $name "*) ;; \
+          *) rm -rf "$entry" ;; \
+        esac; \
+      done; \
+    done; \
+    find /app/apps /app/packages -name '*.js.map' -delete
+
+# The Prisma client, generated against the node_modules that actually ships.
+#
+# Generated here rather than copied, because the client is emitted INTO
+# `node_modules/.pnpm/@prisma+client@…` — and the tree this stage received from
+# `prod-deps` is a different (production-only) install than the one the build
+# stage generated into. The engine binary and the generated client have to sit
+# in the node_modules the runtime will resolve from, not in a discarded one.
+#
+# Runs as uid 10001, and needs no pnpm store: `prisma generate` reads the
+# schema and writes into a node_modules this user already owns.
+RUN pnpm --filter @maestro/db exec prisma generate --schema prisma/schema.prisma
+
+
+# Which entrypoint this image runs. Passed at build time so the three services
+# share every layer above and differ only in this line.
+#
+# `.js` and `dist/`, not `.ts` and `src/`: the compose files name this path, so
+# the value here and the overrides there have to move together.
+ARG ENTRYPOINT_SCRIPT=apps/deploy/dist/bin/bff.js
+ENV MAESTRO_ENTRYPOINT=${ENTRYPOINT_SCRIPT}
+
+EXPOSE 7001
+
+# `sh -c` so ${MAESTRO_ENTRYPOINT} expands, and `exec` so the Node process
+# REPLACES the shell and becomes PID 1. Without the exec, SIGTERM would go to
+# the shell, the drain in `lifecycle.ts` would never run, and a rolling deploy
+# would drop in-flight webhooks — which Jira does not redeliver.
+#
+# Run from `/app` with the FULL path, unlike the `tsx` era. That version had to
+# `cd` into the entrypoint's own package first, because Node resolved
+# `--import tsx` from the working directory and pnpm puts each package's
+# dependencies under `<package>/node_modules` rather than at the root. With the
+# code compiled there is no `--import` to resolve: Node loads the file, and the
+# `@maestro/*` imports inside it resolve from the file's own location, which is
+# already the right package.
+ENTRYPOINT ["/bin/sh", "-c", "exec node \"/app/${MAESTRO_ENTRYPOINT}\" \"$@\"", "--"]

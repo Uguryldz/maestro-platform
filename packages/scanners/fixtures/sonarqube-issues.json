@@ -1,0 +1,52 @@
+{
+  "total": 2,
+  "p": 1,
+  "ps": 500,
+  "paging": { "pageIndex": 1, "pageSize": 500, "total": 2 },
+  "effortTotal": 25,
+  "issues": [
+    {
+      "key": "AY7hK2mQx1a9bC3dE4fG",
+      "rule": "java:S2077",
+      "severity": "CRITICAL",
+      "component": "ugurpay:src/main/java/com/bank/pay/PayDao.java",
+      "project": "ugurpay",
+      "line": 88,
+      "hash": "6f1c2d3e4a5b6c7d8e9f0a1b",
+      "textRange": { "startLine": 88, "endLine": 88, "startOffset": 4, "endOffset": 60 },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Make sure using a dynamically formatted SQL query is safe here.",
+      "effort": "20min",
+      "debt": "20min",
+      "tags": ["cwe", "sql"],
+      "creationDate": "2026-06-01T10:00:00+0300",
+      "updateDate": "2026-07-01T10:00:00+0300",
+      "type": "VULNERABILITY",
+      "scope": "MAIN",
+      "quickFixAvailable": false
+    },
+    {
+      "key": "AY7hK2mQx1a9bC3dE4fH",
+      "rule": "java:S1192",
+      "severity": "MINOR",
+      "component": "ugurpay:src/main/java/com/bank/pay/PayService.java",
+      "project": "ugurpay",
+      "line": 14,
+      "flows": [],
+      "status": "OPEN",
+      "message": "Define a constant instead of duplicating this literal 3 times.",
+      "effort": "5min",
+      "tags": ["design"],
+      "creationDate": "2026-06-02T11:00:00+0300",
+      "updateDate": "2026-06-02T11:00:00+0300",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false
+    }
+  ],
+  "components": [
+    { "key": "ugurpay", "enabled": true, "qualifier": "TRK", "name": "UgurPay", "longName": "UgurPay" },
+    { "key": "ugurpay:src/main/java/com/bank/pay/PayDao.java", "enabled": true, "qualifier": "FIL", "name": "PayDao.java", "longName": "src/main/java/com/bank/pay/PayDao.java", "path": "src/main/java/com/bank/pay/PayDao.java" }
+  ]
+}

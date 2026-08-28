@@ -1,0 +1,11 @@
+HTTP/1.1 200 OK
+Api-Version: 1.54
+Content-Type: application/json
+Docker-Experimental: false
+Ostype: linux
+Server: Docker/29.4.1 (linux)
+Date: Sat, 08 Aug 2026 23:52:01 GMT
+Content-Length: 452
+Connection: close
+
+{"Name":"maestro-open","Id":"b64cdf6d1ff3813dd7531bf7fdaaf82fd5d38c3c4850c1f6346f927b5ece971d","Created":"2026-08-08T23:52:01.605699974Z","Scope":"local","Driver":"bridge","EnableIPv4":true,"EnableIPv6":false,"IPAM":{"Driver":"default","Options":{},"Config":[{"Subnet":"172.27.0.0/16","Gateway":"172.27.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Options":{},"Labels":{},"Containers":{}}

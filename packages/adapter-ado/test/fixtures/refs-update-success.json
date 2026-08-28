@@ -1,0 +1,14 @@
+{
+  "count": 1,
+  "value": [
+    {
+      "repositoryId": "5f8c3a1e-9b2d-4c7a-8e11-2b6d4f0a9c33",
+      "name": "refs/heads/feature/UGURPAY-4312-iban-validation",
+      "oldObjectId": "0000000000000000000000000000000000000000",
+      "newObjectId": "9c1e5a3b7d2f4068a1b3c5d7e9f0a2b4c6d8e0f1",
+      "isLocked": false,
+      "updateStatus": "succeeded",
+      "success": true
+    }
+  ]
+}

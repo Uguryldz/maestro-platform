@@ -1,0 +1,109 @@
+{
+  "templateId": "kurumsal-analiz",
+  "version": "v3",
+  "name": "Kurumsal analiz şablonu",
+  "locale": "tr",
+  "sections": [
+    {
+      "key": "purpose",
+      "contractField": "purpose",
+      "title": "Amaç / iş değeri",
+      "description": "İşin neden yapıldığı ve ölçülebilir iş faydası",
+      "required": true,
+      "format": "free_text",
+      "aiInstruction": "Ticket'ı ve reporter yanıtlarını oku. İşi 2-4 cümlede İŞ diliyle özetle — teknik terim kullanma. Sonuna ölçülebilir bir fayda cümlesi ekle (hedef oran, süre veya adet). Ticket'ta yoksa uydurma, 'ölçüt belirtilmemiş' yaz.",
+      "example": "Müşteri, şube onayı beklemeden kredi limitini risk ekibince tanımlanan üst sınıra kadar artırabilmeli. Şubeye gelen limit taleplerinin %60'ının self-servise kayması hedefleniyor."
+    },
+    {
+      "key": "scope",
+      "contractField": "scope",
+      "title": "Kapsam (dahil / hariç)",
+      "description": "Bu işin sınırı — neye dokunuluyor, neye dokunulmuyor",
+      "required": true,
+      "format": "list_group",
+      "subLists": [
+        { "key": "included", "label": "Dahil", "minItems": 1 },
+        { "key": "excluded", "label": "Hariç", "minItems": 1 }
+      ],
+      "aiInstruction": "İki liste üret: DAHİL ve HARİÇ. Hariç listesini boş bırakma — kapsam dışı bıraktığın her şeyi tek tek yaz, çünkü PO'nun onayladığı sınır budur.",
+      "example": "Dahil: /api/credit/limit ucu · web limit artırma formu · limit doğrulama kuralları.\nHariç: mobil ve masaüstü ekranları (ayrı alt ticket) · risk skorlama motoru (değişmiyor)."
+    },
+    {
+      "key": "impactMatrix",
+      "contractField": "impactMatrix",
+      "title": "Etki analizi",
+      "description": "Hangi uygulama etkileniyor — alt ticket'lar buradan açılır",
+      "required": true,
+      "format": "impact_matrix",
+      "minItems": 1,
+      "aiInstruction": "Repo keşfi çıktısını ve Uygulama Kayıtları'nı (M100) kullan. Her uygulama için etkilenip etkilenmediğine KARAR VER; etkilenmiyorsa da satır aç ve gerekçesini yaz. 'Belki' yazma. Kaynak alanına birincil repo keşfinden geliyorsa primary_repo_discovery, repo kartından geliyorsa repo_card yaz.",
+      "example": "ugurpay-api · etkileniyor · yeni /api/credit/limit ucu + doğrulama kuralı (primary_repo_discovery)\nugurmobil-ios · etkileniyor · limit ekranı alt ticket'a çıkar (repo_card)\nugurrisk-engine · etkilenmiyor · skorlama girdisi değişmiyor (repo_card)"
+    },
+    {
+      "key": "acceptanceCriteria",
+      "contractField": "acceptanceCriteria",
+      "title": "Kabul kriterleri",
+      "description": "Ölçülebilir, test edilebilir kabul maddeleri (en az 3)",
+      "required": true,
+      "format": "bullet_list",
+      "minItems": 3,
+      "aiInstruction": "Her madde tek bir doğrulanabilir davranış olsun ve bir testle karşılanabilsin. 'İyi çalışmalı' gibi ölçülemez ifade yasak. Geriye uyum maddesini unutma.",
+      "example": "Limit üst sınırı konfigürasyondan okunur, sabit kodlanmaz.\nÜst sınırı aşan talep 422 ile reddedilir ve yerelleştirilmiş mesaj döner.\nBaşarılı artırım audit'e yazılır.\nMevcut limit sorgusu değişmez (geriye uyum)."
+    },
+    {
+      "key": "uiApiChanges",
+      "contractField": "uiApiChanges",
+      "title": "Ekran / API değişiklikleri",
+      "description": "Kullanıcıya ve entegrasyona görünen yüzey",
+      "required": false,
+      "format": "table",
+      "columns": ["Yüzey", "Durum", "Geriye uyum"],
+      "aiInstruction": "UI veya API'ye dokunulmuyorsa bu bölümü hiç doldurma. Dokunuluyorsa her uç ve ekran için: yüzey (metot + yol veya ekran adı), durum (yeni / değişti / değişmedi), geriye uyumlu mu.",
+      "example": "POST /api/credit/limit · yeni · —\nGET /api/credit/limit · değişmedi · geriye uyumlu\nHesabım → Kredi → 'Limit artır' formu · yeni · —"
+    },
+    {
+      "key": "testApproach",
+      "contractField": "testApproach",
+      "title": "Test yaklaşımı",
+      "description": "Birim / entegrasyon / uçtan uca dağılımı ve kapsam eşiği",
+      "required": true,
+      "format": "free_text",
+      "aiInstruction": "Test piramidine uy (knowledge: test-piramidi.md). Yaklaşık test adedi ver ve kapsam eşiğini yaz. Bu bölüm test-designer'ın (adım 7) girdisi olur — ona göre yaz.",
+      "example": "Birim: doğrulama kuralları + konfig okuma (≈20). Entegrasyon: uç + eşzamanlılık (≈6). Uçtan uca: form akışı (2). Kapsam eşiği %70, ratchet düşmez (M70)."
+    },
+    {
+      "key": "riskAndRollback",
+      "contractField": "riskAndRollback",
+      "title": "Risk ve geri dönüş planı",
+      "description": "Ne ters gidebilir, nasıl azaltılır, nasıl geri alınır",
+      "required": true,
+      "format": "field_group",
+      "subFields": [
+        { "key": "risk", "label": "Risk" },
+        { "key": "mitigation", "label": "Azaltma" },
+        { "key": "rollback", "label": "Geri dönüş" }
+      ],
+      "aiInstruction": "En az bir gerçek risk yaz (etkisiyle birlikte), azaltma önlemini ve GERİ DÖNÜŞ adımını ayrı ayrı belirt. Şema/veri göçü varsa geri alınabilirliğini açıkça değerlendir — denetim bu bölüme bakar.",
+      "example": "Risk: üst sınır yanlış konfigüre edilirse fazla limit verilebilir (yüksek etki). Azaltma: konfig değeri açılışta doğrulanır, aşım denemeleri loglanır. Geri dönüş: özellik bayrağı kapatılır, uç 404 döner; şema değişikliği yok."
+    },
+    {
+      "key": "sources",
+      "title": "Kaynaklar",
+      "description": "Her iddia hangi dosyaya, repo kartına, knowledge dokümanına veya ticket cümlesine dayanıyor",
+      "required": true,
+      "format": "source_list",
+      "minItems": 1,
+      "aiInstruction": "Yazdığın HER bölüm için en az bir kaynak satırı aç. Kaynak gösteremiyorsan iddiayı hiç yazma — uydurma kesinlikle yasak. Referans, sana verilen bağlamda birebir geçen bir değer olmalı: repo dosyası yolu, repo kartı uygulama kimliği, knowledge dokümanı adı, ticket anahtarı veya netleştirme cevabının kimliği. Bağlamda olmayan bir referans yazmak, bölümü boş bırakmaktan daha ağır bir hatadır.",
+      "example": "acceptanceCriteria · repo_file · src/credit/limit-policy.ts · üst sınır bugün sabit kodlu\nimpactMatrix · repo_card · ugurmobil-ios · Kredi modülü limit ekranını gösteriyor\npurpose · ticket · UGURPAY-501 · 'şube onayı beklemeden limit artırma' cümlesi"
+    },
+    {
+      "key": "openItems",
+      "title": "Netleştirilecek açık maddeler",
+      "description": "Cevaplanmamış veya ertelenmiş maddeler — PO onay verirken neyin açık kaldığını görür",
+      "required": true,
+      "format": "open_items",
+      "aiInstruction": "Cevap alamadığın veya ertelenen her maddeyi yaz: madde, neden açık kaldığı ve kimden cevap beklendiği. Gerçekten açık madde yoksa listeyi boş bırak — ama 'bilmiyorum' dediğin bir konuyu buraya yazmadan analiz teslim etme.",
+      "example": "Üst sınır değerini risk ekibi mi yoksa konfig mi belirleyecek · reporter cevaplamadı · risk-ekibi"
+    }
+  ]
+}

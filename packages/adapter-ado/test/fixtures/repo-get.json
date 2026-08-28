@@ -1,0 +1,22 @@
+{
+  "id": "5f8c3a1e-9b2d-4c7a-8e11-2b6d4f0a9c33",
+  "name": "ugurpay",
+  "url": "https://dev.azure.com/ugurbank/UgurPay/_apis/git/repositories/5f8c3a1e-9b2d-4c7a-8e11-2b6d4f0a9c33",
+  "project": {
+    "id": "1c9f2b77-3d64-45e0-9a2b-7f4c6d81ea05",
+    "name": "UgurPay",
+    "description": "Payment platform",
+    "url": "https://dev.azure.com/ugurbank/_apis/projects/1c9f2b77-3d64-45e0-9a2b-7f4c6d81ea05",
+    "state": "wellFormed",
+    "revision": 42,
+    "visibility": "private",
+    "lastUpdateTime": "2026-05-11T08:21:04.117Z"
+  },
+  "defaultBranch": "refs/heads/main",
+  "size": 8231774,
+  "remoteUrl": "https://ugurbank@dev.azure.com/ugurbank/UgurPay/_git/ugurpay",
+  "sshUrl": "git@ssh.dev.azure.com:v3/ugurbank/UgurPay/ugurpay",
+  "webUrl": "https://dev.azure.com/ugurbank/UgurPay/_git/ugurpay",
+  "isDisabled": false,
+  "isInMaintenance": false
+}

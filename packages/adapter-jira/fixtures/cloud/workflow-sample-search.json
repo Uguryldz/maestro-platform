@@ -1,0 +1,39 @@
+{
+  "isLast": true,
+  "issues": [
+    {
+      "id": "10015",
+      "key": "OPS-6",
+      "self": "https://uyildiz.atlassian.net/rest/api/3/issue/10015",
+      "fields": {
+        "status": {
+          "self": "https://uyildiz.atlassian.net/rest/api/3/status/10004",
+          "name": "Yapılacaklar",
+          "id": "10004",
+          "statusCategory": {
+            "id": 2,
+            "key": "new",
+            "name": "Yapılacaklar"
+          }
+        }
+      }
+    },
+    {
+      "id": "10016",
+      "key": "OPS-7",
+      "self": "https://uyildiz.atlassian.net/rest/api/3/issue/10016",
+      "fields": {
+        "status": {
+          "self": "https://uyildiz.atlassian.net/rest/api/3/status/10005",
+          "name": "Devam Ediyor",
+          "id": "10005",
+          "statusCategory": {
+            "id": 4,
+            "key": "indeterminate",
+            "name": "Devam Ediyor"
+          }
+        }
+      }
+    }
+  ]
+}
