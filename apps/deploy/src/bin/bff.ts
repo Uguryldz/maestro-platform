@@ -24,7 +24,12 @@ import { PrismaListeningStore } from "../stores/listening.js";
 import { PrismaGuidanceStore } from "../stores/guidance.js";
 import { PrismaRunContextStore } from "../stores/run-context.js";
 import { activeAnalystVariantId, activeTemplateVersion } from "../stores/run-pins.js";
-import { discoveryStatus, startJiraDiscovery, type IssueSearcher } from "../jira-discovery.js";
+import {
+  discoverOnce,
+  discoveryStatus,
+  startJiraDiscovery,
+  type IssueSearcher,
+} from "../jira-discovery.js";
 import { startJiraPoller } from "../jira-poller.js";
 import { EnvGateDirectory } from "../stores/gate-directory.js";
 import { prepareWorkspace } from "../stores/workspace-prepare.js";
@@ -333,6 +338,19 @@ export async function main(): Promise<void> {
     // The rules screen shows what SHOULD be picked up; this lets it also say
     // whether anything is looking. See `routes/listening.ts`.
     discoveryStatus,
+    /**
+     * The "şimdi tara" button.
+     *
+     * `deps` is built here, but the sweep is wired further down (it needs the
+     * work driver), so this closes over the holder and reads it when the
+     * button is actually pressed. Left undefined until then, which is what the
+     * route reports as 503 on a webhook-only install.
+     */
+    discoveryRun: () =>
+      discoveryRun === undefined
+        ? Promise.reject(new Error("sweep_not_configured"))
+        : discoveryRun(),
+    sweepConfigured: () => discoveryRun !== undefined,
     config: {
       env: env.base,
       /**
@@ -398,9 +416,21 @@ export async function main(): Promise<void> {
    * Own interval so the two can be tuned apart: comments are cheap and want to
    * be quick, a JQL sweep is not and does not.
    */
+  /**
+   * Set only when the sweep is configured, so the panel's button can tell
+   * "nothing happened" from "there is nothing to run" (503).
+   */
+  let discoveryRun: (() => Promise<readonly string[]>) | undefined;
   const discoverMs = Number(env.source["JIRA_DISCOVER_MS"]?.trim() ?? 0);
   if (Number.isFinite(discoverMs) && discoverMs > 0) {
-    startJiraDiscovery({
+    /**
+     * Built once and used twice: the timer loop below, and the panel's "şimdi
+     * tara" button. Sharing the object is the point — a manual sweep that
+     * searched with different rules or a different driver would test something
+     * other than what runs on the timer, which is the one thing a test button
+     * must never do.
+     */
+    const discoveryOptions = {
       deps: resolveDeps(deps),
       // The concrete driver: searching is not on `WorkPort`.
       search: deployment.ports.work as unknown as IssueSearcher,
@@ -438,7 +468,11 @@ export async function main(): Promise<void> {
         (await db.workflowRun.findMany({ select: { ticketKey: true }, take: 500 })).map(
           (row) => row.ticketKey as TicketKey,
         ),
-    });
+    };
+    startJiraDiscovery(discoveryOptions);
+    // The panel's button runs ONE round with the same options; it does not
+    // touch the timer, so pressing it never changes the schedule.
+    discoveryRun = async () => discoverOnce(discoveryOptions);
     console.log(`[maestro] jira ticket keşfi açık (${discoverMs} ms)`);
   }
 

@@ -155,6 +155,55 @@ export async function listeningRoutes(app: FastifyInstance, deps: ResolvedDeps):
     );
   });
 
+  /**
+   * Sweep NOW — the "test" button behind the rules screen.
+   *
+   * Asked for directly after a sweep that was configured, healthy and taking
+   * nothing: "tarama ok ama yine de panele gelmiyor, daha test butonu yok mu?".
+   * Until this existed the only way to check a rule you had just written was to
+   * wait out the interval and read the container log, which needs a shell on
+   * the server — so the person allowed to write rules could not verify their
+   * own work.
+   *
+   * A write, not a read: it starts runs. Same role gate as creating a rule.
+   * 503 when the deployment runs no sweep (webhook-only), because "nothing
+   * happened" and "there is nothing to run" are different answers.
+   */
+  app.post("/studio/listening-sweep", { preHandler: writeHandler }, async (_request, reply) => {
+    const run = deps.discoveryRun;
+    // `sweepConfigured` is how a composition root that builds deps BEFORE the
+    // sweep says "there is nothing to run"; a plain undefined says the same for
+    // one that never wires it at all.
+    if (run === undefined || deps.sweepConfigured?.() === false) {
+      /**
+       * Not an error the operator caused: a webhook-only install runs no sweep
+       * at all. 503 with a reason beats a button that silently does nothing.
+       */
+      return reply.code(503).send({
+        error: "sweep_not_configured",
+        message:
+          "Bu kurulumda Jira taraması açık değil. .env dosyasına JIRA_DISCOVER_MS " +
+          "ekleyip (örn. 300000) servisleri yeniden başlatın.",
+      });
+    }
+    try {
+      const started = await run();
+      return reply.code(200).send({
+        started: [...started],
+        /** The round's own numbers, so the panel need not re-fetch. */
+        status: deps.discoveryStatus?.() ?? null,
+      });
+    } catch (error) {
+      // A sweep that throws is a real answer for the operator to see, not a
+      // 500 with a stack trace: the usual cause is Jira refusing the search.
+      return reply.code(200).send({
+        started: [],
+        error: error instanceof Error ? error.message : String(error),
+        status: deps.discoveryStatus?.() ?? null,
+      });
+    }
+  });
+
   /** Create a rule. A duplicate trigger (unique index) becomes a 409. */
   app.post("/studio/listening-rules", { preHandler: writeHandler }, async (request, reply) => {
     await assertWritable(deps);

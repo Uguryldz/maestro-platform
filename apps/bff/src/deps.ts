@@ -688,9 +688,35 @@ export type DiscoveryStatusReader = () => {
   readonly lastError: string | null;
 };
 
+/**
+ * Run one sweep NOW, instead of waiting for the next tick.
+ *
+ * Asked for directly after a sweep that was configured, healthy and finding
+ * nothing: "tarama ok ama yine de panele gelmiyor, daha test butonu yok mu?".
+ * Without it the only way to test a rule you just wrote is to wait out the
+ * interval and read the container log — which needs a shell on the server, so
+ * the person who can write rules cannot check their own work.
+ *
+ * Returns the keys the round took, so the panel can say what happened rather
+ * than only that something ran. Optional for the same reason the status reader
+ * is: a webhook-only install runs no sweep at all.
+ */
+export type DiscoveryRunner = () => Promise<readonly string[]>;
+
 export interface BffDeps {
   /** See {@link DiscoveryStatusReader}; absent on a webhook-only install. */
   discoveryStatus?: DiscoveryStatusReader;
+  /** See {@link DiscoveryRunner}; absent on a webhook-only install. */
+  discoveryRun?: DiscoveryRunner;
+  /**
+   * Whether a sweep is wired, asked at call time.
+   *
+   * A composition root builds `deps` before it can build the sweep (the sweep
+   * needs the work driver), so `discoveryRun` there is a closure that always
+   * exists. This is how such a root still reports "webhook-only install"
+   * honestly instead of failing the button with an error.
+   */
+  sweepConfigured?: () => boolean;
   work: WorkPort;
   workEvents: WorkEventReader;
   ci: CiPort;

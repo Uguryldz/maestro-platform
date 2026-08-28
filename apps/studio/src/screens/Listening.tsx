@@ -120,6 +120,13 @@ function durationLabel(ms: number): string {
   return `${minutes} dk ${seconds} sn`;
 }
 
+/** What one manual sweep answers: what it took, and the round's numbers. */
+interface SweepRunResult {
+  readonly started: readonly string[];
+  readonly error?: string;
+  readonly status: SweepStatus | null;
+}
+
 /** What `/studio/listening-status` answers; see the BFF route for why. */
 interface SweepStatus {
   readonly enabled: boolean;
@@ -166,6 +173,27 @@ export function ListeningScreen(): ReactNode {
   // The bound projects, so the operator PICKS one instead of typing a key from
   // memory. A rule on a project that is not bound never fires — a dropdown of
   // real bindings makes that mistake impossible.
+  /**
+   * "Şimdi tara" — run one sweep without waiting for the interval.
+   *
+   * Asked for directly: "tarama ok ama yine de panele gelmiyor, daha test
+   * butonu yok mu?". Writing a rule and then waiting five minutes to find out
+   * whether it matches anything is not a test; and reading the container log
+   * needs a shell, which the admin writing rules does not necessarily have.
+   */
+  const sweepNow = useMutation({
+    mutationFn: () => api.post<SweepRunResult>("/studio/listening-sweep", {}),
+    onSuccess: (result) => {
+      // The round's own numbers come back with the response, but the strip
+      // reads the status query — refresh it so both agree.
+      void queryClient.invalidateQueries({ queryKey: ["listening-status"] });
+      // A ticket that was taken becomes a run, so the runs list is stale too.
+      if (result.started.length > 0) {
+        void queryClient.invalidateQueries({ queryKey: ["runs"] });
+      }
+    },
+  });
+
   const routing = useQuery({
     queryKey: ["routing"],
     queryFn: ({ signal }) => api.get<RoutingView>("/routing", { signal }),
@@ -668,6 +696,37 @@ export function ListeningScreen(): ReactNode {
                   </div>
                 )}
               </>
+            )}
+            {/* The button sits INSIDE the strip, beside the numbers it changes:
+                pressing it and then reading "3 dakika önce" somewhere else on
+                the page is what makes an operator press it twice. */}
+            {canWrite && (
+              <div style={{ marginTop: 8 }}>
+                <Button
+                  size="sm"
+                  busy={sweepNow.isPending}
+                  onClick={() => sweepNow.mutate()}
+                >
+                  {t("listening.sweep.run_now")}
+                </Button>
+                {sweepNow.isSuccess && (
+                  <span style={{ marginLeft: 8 }}>
+                    {sweepNow.data.error !== undefined
+                      ? t("listening.sweep.run_failed", { reason: sweepNow.data.error })
+                      : sweepNow.data.started.length === 0
+                        ? t("listening.sweep.run_empty")
+                        : t("listening.sweep.run_took", {
+                            count: String(sweepNow.data.started.length),
+                            tickets: sweepNow.data.started.join(", "),
+                          })}
+                  </span>
+                )}
+                {sweepNow.isError && (
+                  <span style={{ marginLeft: 8, color: "#b91c1c" }}>
+                    {t(messageKeyOf(sweepNow.error))}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         )}

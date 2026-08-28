@@ -2399,5 +2399,9 @@
   "yaml.read_only": "Bu dosya repoda yaşar; Studio yalnız okur. Değiştirmek için takımın kendi PR süreci kullanılır.",
   "yaml.tabs.label": "Uygulamalar",
   "yaml.toast.path_added": "{path} korumalı yollara eklendi.",
-  "yaml.toast.path_removed": "{path} kaldırıldı."
+  "yaml.toast.path_removed": "{path} kaldırıldı.",
+  "listening.sweep.run_now": "Şimdi tara",
+  "listening.sweep.run_empty": "Tur bitti — alınacak yeni ticket bulunmadı.",
+  "listening.sweep.run_took": "{count} ticket alındı: {tickets}",
+  "listening.sweep.run_failed": "Tarama yapılamadı: {reason}"
 }

@@ -2399,5 +2399,9 @@
   "yaml.read_only": "This file lives in the repository; Studio only reads it. Changing it goes through the team's own pull request process.",
   "yaml.tabs.label": "Applications",
   "yaml.toast.path_added": "{path} added to the protected paths.",
-  "yaml.toast.path_removed": "{path} removed."
+  "yaml.toast.path_removed": "{path} removed.",
+  "listening.sweep.run_now": "Sweep now",
+  "listening.sweep.run_empty": "Round finished — no new ticket to take.",
+  "listening.sweep.run_took": "{count} ticket(s) taken: {tickets}",
+  "listening.sweep.run_failed": "Sweep failed: {reason}"
 }

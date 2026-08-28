@@ -391,3 +391,115 @@ describe("listening surface unwired", () => {
     expect(res.statusCode).toBe(503);
   });
 });
+
+/**
+ * "Şimdi tara" — the button behind the rules screen.
+ *
+ * Asked for after a sweep that was configured, healthy and taking nothing:
+ * "tarama ok ama yine de panele gelmiyor, daha test butonu yok mu?". Writing a
+ * rule and waiting out the interval is not a test, and reading the container
+ * log needs a shell the rule author may not have. These pin the two things
+ * that make the button trustworthy: it STARTS runs (so it is admin-only), and
+ * it says honestly when there is no sweep to run.
+ */
+describe("POST /studio/listening-sweep", () => {
+  it("runs one sweep and answers with what it took", async () => {
+    const h = await harness({
+      deps: { discoveryRun: () => Promise.resolve(["OPS-42", "OPS-43"]) },
+    });
+    const token = await admin(h);
+
+    const res = await h.app.inject({
+      method: "POST",
+      url: "/studio/listening-sweep",
+      headers: auth(token),
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json<{ started: string[] }>().started).toEqual(["OPS-42", "OPS-43"]);
+  });
+
+  it("says an empty round is empty rather than reporting a failure", async () => {
+    const h = await harness({ deps: { discoveryRun: () => Promise.resolve([]) } });
+    const token = await admin(h);
+
+    const res = await h.app.inject({
+      method: "POST",
+      url: "/studio/listening-sweep",
+      headers: auth(token),
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json<{ started: string[] }>().started).toEqual([]);
+  });
+
+  /**
+   * A sweep that throws is an answer the operator needs to READ — the usual
+   * cause is Jira refusing the search — not a 500 with a stack trace.
+   */
+  it("reports a failed sweep as a readable reason, not a 500", async () => {
+    const h = await harness({
+      deps: { discoveryRun: () => Promise.reject(new Error("jira 403")) },
+    });
+    const token = await admin(h);
+
+    const res = await h.app.inject({
+      method: "POST",
+      url: "/studio/listening-sweep",
+      headers: auth(token),
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json<{ error?: string }>().error).toContain("jira 403");
+  });
+
+  /**
+   * A webhook-only install runs no sweep at all. "Nothing happened" and "there
+   * is nothing to run" need different answers, and the second one has to say
+   * WHICH setting is missing — that is the whole reason this button exists.
+   */
+  it("answers 503 with the missing setting when no sweep is configured", async () => {
+    const h = await harness();
+    const token = await admin(h);
+
+    const res = await h.app.inject({
+      method: "POST",
+      url: "/studio/listening-sweep",
+      headers: auth(token),
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(503);
+    expect(res.json<{ message: string }>().message).toContain("JIRA_DISCOVER_MS");
+  });
+
+  /** It starts runs, so it is a WRITE: same gate as creating a rule. */
+  it("refuses a tech-lead, who may read rules but not write them", async () => {
+    const h = await harness({ deps: { discoveryRun: () => Promise.resolve([]) } });
+    const token = await techLead(h);
+
+    const res = await h.app.inject({
+      method: "POST",
+      url: "/studio/listening-sweep",
+      headers: auth(token),
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("refuses an unauthenticated caller", async () => {
+    const h = await harness({ deps: { discoveryRun: () => Promise.resolve([]) } });
+
+    const res = await h.app.inject({
+      method: "POST",
+      url: "/studio/listening-sweep",
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(401);
+  });
+});
