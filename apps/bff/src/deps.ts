@@ -717,6 +717,14 @@ export interface BffDeps {
    * honestly instead of failing the button with an error.
    */
   sweepConfigured?: () => boolean;
+  /**
+   * WHY there is no sweep, in the operator's language.
+   *
+   * "Not configured" and "this driver cannot search" send a person to two
+   * different places — the `.env` file, or the connection screen. A single
+   * generic message sends them to the wrong one half the time.
+   */
+  sweepUnavailableReason?: () => string;
   work: WorkPort;
   workEvents: WorkEventReader;
   ci: CiPort;

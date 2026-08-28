@@ -39,6 +39,27 @@ export interface IssueSearcher {
   }): Promise<{ issues: Array<{ key?: string }> }>;
 }
 
+/**
+ * Whether a work driver can be swept at all.
+ *
+ * The composition root used to hand the sweep `ports.work as unknown as
+ * IssueSearcher` — a cast TypeScript accepts and the runtime does not. Only the
+ * Jira Cloud driver has `searchIssues`; on Data Center and on Azure DevOps the
+ * loop threw `searchIssues is not a function` every single round, and the
+ * panel's button surfaced it as a 500 with no explanation.
+ *
+ * Asking the object is honest where the cast was not: a driver either offers
+ * the method or it does not, and a deployment that cannot sweep must SAY so
+ * rather than fail once per interval.
+ */
+export function canSearch(driver: unknown): driver is IssueSearcher {
+  return (
+    typeof driver === "object" &&
+    driver !== null &&
+    typeof (driver as { searchIssues?: unknown }).searchIssues === "function"
+  );
+}
+
 /** One listening rule, as much of it as discovery needs. */
 export interface DiscoveryRule {
   readonly projectKey: string;

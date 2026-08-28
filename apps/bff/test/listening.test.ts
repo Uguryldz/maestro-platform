@@ -476,6 +476,35 @@ describe("POST /studio/listening-sweep", () => {
     expect(res.json<{ message: string }>().message).toContain("JIRA_DISCOVER_MS");
   });
 
+  /**
+   * "Not asked for" and "this driver cannot search" send a person to two
+   * different places: the `.env` file, or the connection screen. One generic
+   * message sends them to the wrong one half the time — and the customer hit
+   * exactly this, on an install where the work driver had no search at all.
+   */
+  it("says WHICH absence it is when the driver cannot search", async () => {
+    const h = await harness({
+      deps: {
+        sweepUnavailableReason: () =>
+          "Bu kurulumun iş sürücüsü ticket araması sunmuyor, bu yüzden tarama çalışamaz.",
+      },
+    });
+    const token = await admin(h);
+
+    const res = await h.app.inject({
+      method: "POST",
+      url: "/studio/listening-sweep",
+      headers: auth(token),
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(503);
+    const message = res.json<{ message: string }>().message;
+    expect(message).toContain("arama");
+    // NOT the "go and set JIRA_DISCOVER_MS" advice, which would be wrong here.
+    expect(message).not.toContain("JIRA_DISCOVER_MS");
+  });
+
   /** It starts runs, so it is a WRITE: same gate as creating a rule. */
   it("refuses a tech-lead, who may read rules but not write them", async () => {
     const h = await harness({ deps: { discoveryRun: () => Promise.resolve([]) } });

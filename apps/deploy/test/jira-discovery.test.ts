@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canSearch,
   discoverOnce,
   jqlFor,
   startJiraDiscovery,
@@ -316,5 +317,48 @@ describe("startJiraDiscovery: the operator's interval", () => {
     // Zero means off: no second round was scheduled, however short the boot
     // interval was.
     expect(rounds).toBeLessThanOrEqual(1);
+  });
+});
+
+/**
+ * Which drivers can be swept at all.
+ *
+ * The composition root used to hand the sweep `ports.work as unknown as
+ * IssueSearcher`. TypeScript accepts that cast; the runtime does not. Only the
+ * Jira Cloud driver has `searchIssues` — so on an Azure DevOps install (where
+ * the work port is a different object entirely) and on Jira Data Center, every
+ * round threw "searchIssues is not a function": silently on the timer, and as a
+ * bare HTTP 500 behind the panel's "şimdi tara" button, which is where the
+ * customer finally saw it.
+ *
+ * Asking the object is what a cast pretended to do. These pin the question.
+ */
+describe("canSearch", () => {
+  it("accepts a driver that really offers the search", () => {
+    expect(canSearch({ searchIssues: () => Promise.resolve({ issues: [] }) })).toBe(true);
+  });
+
+  it("rejects a work driver that has no search — the ADO and DC case", () => {
+    // Shaped like a real work port: everything the workflow needs, no search.
+    const workPortWithoutSearch = {
+      getTicket: () => Promise.resolve({}),
+      addComment: () => Promise.resolve({ commentId: "1" }),
+      transition: () => Promise.resolve(),
+    };
+
+    expect(canSearch(workPortWithoutSearch)).toBe(false);
+  });
+
+  /**
+   * A property that merely EXISTS is what the old cast effectively assumed.
+   * Calling a string would throw exactly the error this check exists to stop.
+   */
+  it("rejects a driver whose searchIssues is not callable", () => {
+    expect(canSearch({ searchIssues: "yes" })).toBe(false);
+  });
+
+  it("rejects nothing at all rather than throwing on it", () => {
+    expect(canSearch(null)).toBe(false);
+    expect(canSearch(undefined)).toBe(false);
   });
 });

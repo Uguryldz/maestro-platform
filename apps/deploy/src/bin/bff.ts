@@ -25,6 +25,7 @@ import { PrismaGuidanceStore } from "../stores/guidance.js";
 import { PrismaRunContextStore } from "../stores/run-context.js";
 import { activeAnalystVariantId, activeTemplateVersion } from "../stores/run-pins.js";
 import {
+  canSearch,
   discoverOnce,
   discoveryStatus,
   startJiraDiscovery,
@@ -351,6 +352,14 @@ export async function main(): Promise<void> {
         ? Promise.reject(new Error("sweep_not_configured"))
         : discoveryRun(),
     sweepConfigured: () => discoveryRun !== undefined,
+    /**
+     * Which absence it is. The driver check happens further down (it needs the
+     * work port), so this reads the holder at call time like the runner does.
+     */
+    sweepUnavailableReason: () =>
+      sweepReason ??
+      "Bu kurulumda ticket taraması açık değil. .env dosyasına JIRA_DISCOVER_MS " +
+        "ekleyip (örn. 300000) servisleri yeniden başlatın.",
     config: {
       env: env.base,
       /**
@@ -421,8 +430,23 @@ export async function main(): Promise<void> {
    * "nothing happened" from "there is nothing to run" (503).
    */
   let discoveryRun: (() => Promise<readonly string[]>) | undefined;
+  /** Set when the sweep is impossible for a reason other than "not asked for". */
+  let sweepReason: string | undefined;
   const discoverMs = Number(env.source["JIRA_DISCOVER_MS"]?.trim() ?? 0);
-  if (Number.isFinite(discoverMs) && discoverMs > 0) {
+  /**
+   * The driver's searcher, or nothing.
+   *
+   * This used to be `ports.work as unknown as IssueSearcher` — a cast
+   * TypeScript accepts and the runtime does not. Only Jira Cloud has
+   * `searchIssues`; on Data Center and on Azure DevOps every round threw
+   * "searchIssues is not a function", silently on the timer and as a bare 500
+   * behind the panel's button. Asked, not asserted, so a driver that cannot be
+   * swept is reported instead of failing once per interval.
+   */
+  const workPort: unknown = deployment.ports.work;
+  const searcher: IssueSearcher | null = canSearch(workPort) ? workPort : null;
+
+  if (Number.isFinite(discoverMs) && discoverMs > 0 && searcher !== null) {
     /**
      * Built once and used twice: the timer loop below, and the panel's "şimdi
      * tara" button. Sharing the object is the point — a manual sweep that
@@ -432,8 +456,7 @@ export async function main(): Promise<void> {
      */
     const discoveryOptions = {
       deps: resolveDeps(deps),
-      // The concrete driver: searching is not on `WorkPort`.
-      search: deployment.ports.work as unknown as IssueSearcher,
+      search: searcher,
       intervalMs: discoverMs,
       rules: async () =>
         (await db.listeningRule.findMany({ orderBy: { priority: "asc" } })).map((row) => ({
@@ -474,6 +497,26 @@ export async function main(): Promise<void> {
     // touch the timer, so pressing it never changes the schedule.
     discoveryRun = async () => discoverOnce(discoveryOptions);
     console.log(`[maestro] jira ticket keşfi açık (${discoverMs} ms)`);
+  } else if (Number.isFinite(discoverMs) && discoverMs > 0) {
+    /**
+     * Asked for, and impossible.
+     *
+     * An operator who set `JIRA_DISCOVER_MS` expects a sweep; a driver with no
+     * search cannot give one. Staying silent here is what produced the original
+     * complaint — the panel said the sweep was on, every round threw, and
+     * nothing in the log connected the two. Said at boot instead, once, by
+     * name.
+     */
+    sweepReason =
+      "Bu kurulumun iş sürücüsü ticket araması sunmuyor, bu yüzden tarama " +
+      "çalışamaz. JQL araması yalnız Jira Cloud bağlantısında vardır — " +
+      "Jira Data Center kurulumları ticket'ları webhook ile alır. " +
+      "Bağlantılar ekranından Jira Cloud bağlantısını kontrol edin.";
+    console.warn(
+      `[maestro] ticket keşfi İSTENDİ (${discoverMs} ms) ama bu iş sürücüsü arama sunmuyor — ` +
+        "tarama kapalı. JQL araması yalnız Jira Cloud sürücüsünde vardır; " +
+        "Jira Data Center kurulumları ticket'ları webhook ile alır.",
+    );
   }
 
   const app = await buildServer(deps);

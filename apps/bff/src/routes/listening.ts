@@ -179,11 +179,21 @@ export async function listeningRoutes(app: FastifyInstance, deps: ResolvedDeps):
        * Not an error the operator caused: a webhook-only install runs no sweep
        * at all. 503 with a reason beats a button that silently does nothing.
        */
+      /**
+       * Two different absences, one honest answer.
+       *
+       * The sweep is off either because nobody asked for it
+       * (`JIRA_DISCOVER_MS` unset) or because the work driver cannot search —
+       * only Jira Cloud offers JQL. The composition root knows which; it says
+       * so at boot and passes the reason here, so the operator is not sent to
+       * edit a setting that would change nothing.
+       */
       return reply.code(503).send({
         error: "sweep_not_configured",
         message:
-          "Bu kurulumda Jira taraması açık değil. .env dosyasına JIRA_DISCOVER_MS " +
-          "ekleyip (örn. 300000) servisleri yeniden başlatın.",
+          deps.sweepUnavailableReason?.() ??
+          "Bu kurulumda ticket taraması açık değil. .env dosyasına JIRA_DISCOVER_MS " +
+            "ekleyip (örn. 300000) servisleri yeniden başlatın.",
       });
     }
     try {
