@@ -559,3 +559,56 @@ describe("ugurdocker bundle: the filled-in .env cannot escape", () => {
     expect(dockerignore).toMatch(/^\*\*\/\.env$/m);
   });
 });
+
+/**
+ * What the installer refuses to let an operator walk past in silence.
+ *
+ * Each of these is a setting that, left alone, produces a system that RUNS and
+ * is WRONG — the worst failure shape for a bank, because nothing errors and the
+ * operator has no thread to pull. They were found by audit before the bank
+ * install, not after it.
+ */
+describe("ugurdocker bundle: the installer asks before a silent-wrong install", () => {
+  const install = readFileSync(
+    new URL("../../../deploy/ugurdocker/install.sh", import.meta.url),
+    "utf8",
+  );
+
+  /**
+   * Approval groups. With no mapping, Maestro treats the ROLE NAME as the group
+   * name and looks for `product-owners` / `tech-leads` / `qa` in Jira. No bank
+   * has groups by those names, so every `/approve` is refused as "not a member"
+   * and the gate waits forever — a run that looks stuck with no error anywhere.
+   */
+  it("asks when no approval group is mapped, because gates then refuse everyone", () => {
+    expect(install).toContain("GATE_GROUPS");
+    expect(install).toContain("GATE_GROUP_DEFAULT");
+    const guard = install.slice(install.indexOf("GATE_GROUPS ve GATE_GROUP_DEFAULT"));
+    // It must offer the fix, not just name the problem.
+    expect(guard).toContain("onay ");
+  });
+
+  /**
+   * The sweep is a Jira Cloud capability: JQL search exists only on that
+   * driver. Setting the interval on a Data Center install buys nothing, and an
+   * operator who believes tickets will arrive by sweep will not set up the
+   * webhook that is actually carrying them.
+   */
+  it("asks when the sweep is set but no Jira Cloud connection can serve it", () => {
+    expect(install).toContain("JIRA_DISCOVER_MS dolu ama");
+    expect(install).toContain("JIRA_CLOUD_BASE_URL");
+  });
+
+  /**
+   * Migrations are forward-only and there is no down migration. If an upgrade
+   * goes wrong, moving the image tag back is NOT enough — the schema has
+   * already changed. The only real way back is a backup taken BEFORE the
+   * upgrade, so the installer asks for one when it sees an existing database.
+   */
+  it("asks for a backup before upgrading over an existing database", () => {
+    expect(install).toContain("YEDEK BULUNAMADI");
+    expect(install).toContain("pg_dump");
+    // Detected from the volume, not from a flag the operator could forget.
+    expect(install).toContain("postgres-data");
+  });
+});

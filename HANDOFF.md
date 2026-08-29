@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## DURUM
-**1.0.12 yayında ve canlıda.** `uguryldz/maestro-node:1.0.12` ve `uguryldz/maestro-studio:1.0.12`
+**1.0.13 yayında ve canlıda.** `uguryldz/maestro-node:1.0.13` ve `uguryldz/maestro-studio:1.0.13`
 Docker Hub'da. Çalışma ağacı temiz.
 
 ## Bu turun konusu: "parametreler canlıda boş geliyor"
@@ -14,6 +14,31 @@ doğrudan compose ile kurulanda SIFIR. Ekran ikisinde de aynı boş tabloyu çiz
 
 Kill switch, veri sınıfı politikası, kapı eşikleri ve Jira tarama aralığı o tabloda.
 Yani parametresiz kurulum "ayarları boş platform" değil, "ayarlarına erişilemeyen platform".
+
+## 1.0.13: BANKA ÖNCESİ GENEL TARAMA — dört sessiz-yanlış bulundu
+Aranan desen: kodun YALAN SÖYLEDİĞİ yerler. Patlayan hata operatörü doğru yere
+götürür; sessizce yanlış çalışan sistem götürmez.
+
+1. **`/approve` okunamayan sürücüde kapılar sonsuza dek bekliyordu** — 1.0.12'deki
+   tarama hatasının İKİZİ: yoklayıcıya da `as unknown as` ile sahte tip veriliyordu.
+   `listComments` yalnız Jira Cloud'da var → DC'de onay hiç okunmaz, kapı bekler,
+   hata YOK. Üstelik ticket başına yakalanıp loglanıyordu. → `canReadComments`.
+2. **GATE_GROUPS boşsa her /approve reddedilir** — rol adı grup adı sayılır, Jira'da
+   "product-owners" aranır, hiçbir bankada yoktur. Kurulum artık soruyor.
+3. **Yedeksiz yükseltme geri dönüşsüz** — göçler ileri yönlü, geri alma göçü YOK.
+   Etiketi geri almak yetmez. README §7 adım 1 = pg_dump; install.sh mevcut postgres
+   volume'ü görüp yedek bulamazsa soruyor; README §7b geri alma prosedürü yazıldı.
+4. **MAESTRO_BOT_EMAIL sahte varsayılan** — dolu geldiği için iki kontrolden de
+   sıyrılıyordu, Cloud'da Basic auth kullanıcı adı olarak gidip 401 veriyordu.
+   Zorunlu YAPILMADI (boşsa JIRA_CLOUD_EMAIL'e düşer) — varsayılan boşaltıldı.
+
+Ayrıca: LLM bağlantı testi artık kredi ÖLÇMEDİĞİNİ söylüyor (kotası dolmuş anahtar
+testi geçip analizde 403 alıyordu).
+
+**Denetlenip TEMİZ:** hava boşluğu (install.sh'ta sıfır dış çağrı, imajlar değişkenli,
+telemetri/CDN yok), volume sahipliği (named), imaj etiketleri pinli, kalan 16
+`as unknown as` (hiçbiri çok sürücülü port cast'i değil), diğer üç tohum sayacı,
+bot yönetici hesabı (DB'de artık YOK — HANDOFF uyarısı kapatıldı).
 
 ## 1.0.12: sahte tip dönüşümü, arama sunmayan sürücüde her turu patlatıyordu
 Sahadan: "şimdi tara 500 hatası veriyor, Azure DevOps'ta neden olabilir?".
@@ -88,7 +113,7 @@ tek temiz commit (geçmiş taşınmadı). Yerel kopya `/home/ubuntu/maestro-repo
 DİKKAT: `/home/ubuntu/coder/maestro` hâlâ ESKİ `Uguryldz/coder` reposuna bağlı — iki ayrı yer.
 
 ## Testler
-bff 927/927 · deploy 814/814 · adapter-ado 120/120 · db 232/232 · studio 405/405 · config 26/26 · tsc temiz.
+bff 927/927 · deploy 824/824 · studio 405/405 · db 232/232 · adapter-ado 120/120 · db 232/232 · studio 405/405 · config 26/26 · tsc temiz.
 Turbo'nun toplu koşusu bu makinede YÜK yüzünden ALAKASIZ paketleri kırmızı
 gösterebiliyor — düşen paketi TEK BAŞINA koştur.
 
@@ -97,8 +122,9 @@ gösterebiliyor — düşen paketi TEK BAŞINA koştur.
 - **Bağlantı testi gerçek bir tamamlama çağrısı yapmalı.** Şu an `/models` çağırıyor:
   kredisi bitmiş anahtar testi GEÇİYOR, sonra koşu 2. adımda 403 ile takılıyor.
   Canlıda bir kez yaşandı. Kullanıcı kararı bekliyor.
-- **Bot hesabını sil**: `User` tablosunda `712020.b836c135-…@corp`, `maestro-admins`
-  üyesi (dört-göz muafiyeti). **Bankaya giderken SİL.**
+- ~~Bot hesabını sil~~ **KAPANDI** (2026-08-29 doğrulandı): `User` tablosunda
+  `712020…` satırı YOK. Kalan iki hesap: `admin` (kurulumun yarattığı, meşru) ve
+  `jira-bot-jira` (hiçbir grupta değil, yönetici yetkisi yok).
 
 ## Tuzaklar
 - `pkill -f "src/bin/worker.ts"` kendi kabuğunu vurur; `\.ts` diye kaçır.

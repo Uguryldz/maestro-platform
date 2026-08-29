@@ -58,6 +58,28 @@ export interface PollerOptions {
  */
 type Seen = Set<string>;
 
+/**
+ * Whether a work driver can read a comment thread at all.
+ *
+ * Same shape as the sweep's `canSearch`, and for the same reason: the
+ * composition root used to cast `ports.work` to a comment reader with `as
+ * unknown as`, which TypeScript accepts and the runtime does not.
+ * `listComments` exists ONLY on the Jira Cloud driver — a Data Center install
+ * has no such method, so every ticket threw once per interval and the error was
+ * swallowed per-ticket. The visible effect is the one that matters in a bank:
+ * `/approve` written on a ticket is never read, so an approval gate waits
+ * forever and nobody can say why.
+ */
+export function canReadComments(
+  driver: unknown,
+): driver is { listComments(t: TicketKey): Promise<unknown[]> } {
+  return (
+    typeof driver === "object" &&
+    driver !== null &&
+    typeof (driver as { listComments?: unknown }).listComments === "function"
+  );
+}
+
 export function startJiraPoller(options: PollerOptions): { stop: () => void } {
   const seen: Seen = new Set();
   const log = options.log ?? ((message: string) => console.log(message));

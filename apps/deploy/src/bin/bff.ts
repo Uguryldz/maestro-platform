@@ -31,7 +31,7 @@ import {
   startJiraDiscovery,
   type IssueSearcher,
 } from "../jira-discovery.js";
-import { startJiraPoller } from "../jira-poller.js";
+import { canReadComments, startJiraPoller } from "../jira-poller.js";
 import { EnvGateDirectory } from "../stores/gate-directory.js";
 import { prepareWorkspace } from "../stores/workspace-prepare.js";
 import { EncryptedSecretStore, resolveMasterKey } from "../stores/encrypted-secret.js";
@@ -392,11 +392,13 @@ export async function main(): Promise<void> {
    * the ticket reaches nothing without this loop.
    */
   const pollMs = Number(env.source["JIRA_POLL_MS"]?.trim() ?? 0);
-  if (Number.isFinite(pollMs) && pollMs > 0) {
+  const commentReader = canReadComments(deployment.ports.work) ? deployment.ports.work : null;
+  if (Number.isFinite(pollMs) && pollMs > 0 && commentReader !== null) {
     startJiraPoller({
       deps: resolveDeps(deps),
-      // The concrete driver: reading a thread is not on `WorkPort`.
-      comments: deployment.ports.work as unknown as { listComments(t: TicketKey): Promise<unknown[]> },
+      // The concrete driver: reading a thread is not on `WorkPort`. Asked for
+      // by name rather than cast — see `canReadComments`.
+      comments: commentReader,
       intervalMs: pollMs,
       // Live runs, re-read each round so a gate opened a second ago is polled
       // without waiting for a restart.
@@ -410,6 +412,20 @@ export async function main(): Promise<void> {
         ).map((row) => row.ticketKey as TicketKey),
     });
     console.log(`[maestro] jira komut yoklaması açık (${pollMs} ms)`);
+  } else if (Number.isFinite(pollMs) && pollMs > 0) {
+    /**
+     * Asked for, and impossible — said once, at boot, instead of throwing per
+     * ticket per interval into a log nobody reads.
+     *
+     * This is the failure a bank feels first: `/approve` on the ticket is the
+     * documented way to pass a gate, and on a driver with no comment reader it
+     * is never seen. The run waits forever and looks stuck for no reason.
+     */
+    console.warn(
+      `[maestro] jira komut yoklaması İSTENDİ (${pollMs} ms) ama bu iş sürücüsü yorum ` +
+        "okuma sunmuyor — yoklama kapalı. Ticket'a yazılan /approve OKUNMAZ; " +
+        "onaylar panelden verilmelidir. (Yorum okuma yalnız Jira Cloud sürücüsünde vardır.)",
+    );
   }
 
   /**

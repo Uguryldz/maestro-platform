@@ -2403,5 +2403,6 @@
   "listening.sweep.run_now": "Şimdi tara",
   "listening.sweep.run_empty": "Tur bitti — alınacak yeni ticket bulunmadı.",
   "listening.sweep.run_took": "{count} ticket alındı: {tickets}",
-  "listening.sweep.run_failed": "Tarama yapılamadı: {reason}"
+  "listening.sweep.run_failed": "Tarama yapılamadı: {reason}",
+  "connections.test.key_ok_quota_unknown": "Anahtar geçerli, model listesi okundu. NOT: bu test kredi/kota durumunu ÖLÇMEZ — kotası dolmuş bir anahtar da bu testi geçer, sonra analiz sırasında reddedilir."
 }

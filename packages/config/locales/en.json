@@ -2403,5 +2403,6 @@
   "listening.sweep.run_now": "Sweep now",
   "listening.sweep.run_empty": "Round finished — no new ticket to take.",
   "listening.sweep.run_took": "{count} ticket(s) taken: {tickets}",
-  "listening.sweep.run_failed": "Sweep failed: {reason}"
+  "listening.sweep.run_failed": "Sweep failed: {reason}",
+  "connections.test.key_ok_quota_unknown": "Key valid, model list read. NOTE: this test does NOT check credit or quota — a key that has run out still passes here, then fails during analysis."
 }

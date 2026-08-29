@@ -416,25 +416,86 @@ loglar temizdir, panel çalışır — ama iş görülmez.
 
 ## 7. Güncelleme (veri korunarak)
 
+> **Önce okuyun:** Şema göçleri (migration) YALNIZCA İLERİ yöndedir. Geri alma
+> göçü yoktur ve olmayacaktır. Yani bir yükseltme kötü giderse imaj etiketini
+> eskiye çevirmek YETMEZ — yeni göç şemayı çoktan değiştirmiştir ve eski kod o
+> şemayı okuyamaz. **Tek gerçek geri dönüş yolu, yükseltmeden ÖNCE alınmış
+> veritabanı yedeğidir.** Bu yüzden yedek, prosedürün 1. adımıdır, öneri değil.
+
 ```bash
-# 1) Yeni imaj tar'ını yükleyin
+# 1) YEDEK AL — bu adım atlanırsa geri dönüş YOKTUR
+docker compose exec -T postgres pg_dump -U maestro maestro \
+  | gzip > maestro-yedek-$(date +%F-%H%M).sql.gz
+cp .env .env.yedek-$(date +%F-%H%M)          # CONNECTOR_MASTER_KEY burada
+ls -lh maestro-yedek-*.sql.gz                # boyutu 0 DEĞİLSE devam edin
+
+# 2) Yeni imaj tar'ını yükleyin
 gunzip -c maestro-imajlar-<YENI_TAG>.tar.gz | docker load
 
-# 2) .env'de etiketleri yeni sürüme çevirin
+# 3) .env'de etiketleri yeni sürüme çevirin — ESKİ ETİKETİ NOT EDİN
 #    MAESTRO_NODE_IMAGE / MAESTRO_STUDIO_IMAGE
+grep -E '^MAESTRO_(NODE|STUDIO)_IMAGE' .env    # geri dönerken bu değerler lazım
 
-# 3) Yeni paketin .env.example'ında EKLENMİŞ alan var mı, karşılaştırın:
+# 4) Yeni paketin .env.example'ında EKLENMİŞ alan var mı, karşılaştırın:
 diff <(grep -oE '^[A-Z_]+=' .env.example | sort) <(grep -oE '^[A-Z_]+=' .env | sort)
 
-# 4) Uygulayın — migrate otomatik çalışır, veri korunur
+# 5) Uygulayın — migrate otomatik çalışır, veri korunur
 ./install.sh --yes
+
+# 6) Doğrulayın: yedi servis de sağlıklı mı, panel açılıyor mu
+docker compose ps
 ```
 
-> Yeni bir sürüm yeni bir **zorunlu** değişken getirebilir. 3. adımı atlamayın:
+> Yeni bir sürüm yeni bir **zorunlu** değişken getirebilir. 4. adımı atlamayın:
 > eski bir `.env`, yeni pakette eksik kalır. `install.sh`, `.env` ile paketin
 > `BUNDLE_VERSION`'ı tutmuyorsa zaten uyarır.
 
 **ASLA `docker compose down -v` çalıştırmayın** — `-v` veritabanı volume'ünü siler.
+
+---
+
+## 7b. Geri alma (yükseltme kötü giderse)
+
+Bu bölümün var olması, geri almanın KOLAY olduğu anlamına gelmez. Tersine:
+**geri alma pahalıdır ve yedek gerektirir.** Ne yapılabileceğini önceden bilmek,
+gece yarısı öğrenmekten iyidir.
+
+**Durum A — göç uygulanmadı** (migrate adımı hata verdi, servisler kalkmadı).
+Şema değişmemiştir; etiketi geri almak yeterlidir:
+
+```bash
+# .env'de MAESTRO_NODE_IMAGE / MAESTRO_STUDIO_IMAGE'i ESKİ etikete çevirin
+docker compose up -d
+docker compose ps                              # yedi servis sağlıklı olmalı
+```
+
+**Durum B — göç uygulandı, sonra sorun çıktı.** Şema yeni, kod eski olacaktır;
+etiketi geri almak TEK BAŞINA yetmez ve yeni hatalar üretir. Yedekten dönün:
+
+```bash
+# 1) Yığını durdurun (-v YOK: volume'e dokunmuyoruz)
+docker compose down
+
+# 2) Veritabanını yedeğin alındığı ana geri sarın
+docker compose up -d postgres
+docker compose exec -T postgres psql -U maestro -d postgres \
+  -c 'DROP DATABASE maestro;' -c 'CREATE DATABASE maestro OWNER maestro;'
+gunzip -c maestro-yedek-<TARİH>.sql.gz \
+  | docker compose exec -T postgres psql -U maestro -d maestro
+
+# 3) .env'i ve imaj etiketlerini yedekteki hâline döndürün
+cp .env.yedek-<TARİH> .env
+
+# 4) Kaldırın
+docker compose up -d
+```
+
+> Yedekten dönmek, yedek anından sonraki İŞLERİ SİLER: o aralıkta açılan
+> koşular, verilen onaylar ve yazılan denetim kayıtları geri gelmez. Bu yüzden
+> yükseltmeyi iş saatleri dışında ve yedek alarak yapın.
+
+> `CONNECTOR_MASTER_KEY` değişmişse kayıtlı bağlantı jetonlarının hiçbiri
+> çözülemez. `.env` yedeği bu yüzden veritabanı yedeği kadar önemlidir.
 
 ---
 

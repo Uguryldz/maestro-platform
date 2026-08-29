@@ -81,6 +81,32 @@ if [[ -n "${DOTENV_VERSION:-}" && "${DOTENV_VERSION}" != "${BUNDLE_VERSION_SCRIP
   onay "Yine de devam edilsin mi?" || exit 0
 fi
 
+# Yükseltme yedeksiz yapılırsa GERİ DÖNÜŞ YOKTUR.
+#
+# Şema göçleri yalnızca İLERİ yöndedir; geri alma göçü yoktur. Yükseltme kötü
+# giderse imaj etiketini eskiye çevirmek yetmez — yeni göç şemayı çoktan
+# değiştirmiştir ve eski kod onu okuyamaz. Tek gerçek geri dönüş yolu,
+# yükseltmeden ÖNCE alınmış veritabanı yedeğidir (README §7b).
+#
+# Bu yüzden mevcut bir kurulumun üstüne çıkılıyorsa yedek SORULUR. Sormak,
+# altı ay sonra yedeği olmayan bir operatörle konuşmaktan ucuzdur.
+if docker volume ls --format '{{.Name}}' 2>/dev/null \
+   | grep -qE "^${COMPOSE_PROJECT_NAME:-maestro}_postgres-data$"; then
+  YEDEK_SAYISI=$(ls -1 maestro-yedek-*.sql.gz 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "${YEDEK_SAYISI}" == "0" ]]; then
+    warn "Mevcut bir veritabanı volume'ü var (yükseltme) ama YEDEK BULUNAMADI."
+    warn "  Şema göçleri geri alınamaz: yükseltme kötü giderse tek dönüş yolu yedektir."
+    warn "  Şimdi almak için:"
+    warn "    docker compose exec -T postgres pg_dump -U maestro maestro \\"
+    warn "      | gzip > maestro-yedek-\$(date +%F-%H%M).sql.gz"
+    warn "    cp .env .env.yedek-\$(date +%F-%H%M)"
+    onay "Yedeksiz devam edilsin mi?" \
+      || die "Yedeği alıp tekrar çalıştırın (README §7 adım 1)."
+  else
+    ok "Yedek bulundu (${YEDEK_SAYISI} dosya): $(ls -1t maestro-yedek-*.sql.gz 2>/dev/null | head -1)"
+  fi
+fi
+
 # Doldurulmamış alanlar.
 #
 # Yalnızca GERÇEK atamalara bakılır (`^AD=`), açıklama satırlarına değil.
@@ -289,6 +315,29 @@ if [[ -z "${JIRA_POLL_MS:-}" || "${JIRA_POLL_MS:-0}" == "0" ]]; then
   warn "  (Webhook'u çalışan bir Data Center kurulumunda kapalı kalması DOĞRUdur.)"
   onay "Böyle devam edilsin mi (yoklama kapalı kalsın)?" \
     || die "JIRA_POLL_MS ayarlayıp tekrar çalıştırın."
+fi
+
+if [[ -z "${GATE_GROUPS:-}" && -z "${GATE_GROUP_DEFAULT:-}" ]]; then
+  warn "GATE_GROUPS ve GATE_GROUP_DEFAULT boş: onay grupları EŞLENMEMİŞ."
+  warn "  Bu durumda Maestro rolün kendi adını grup adı sayar ve Jira'da"
+  warn "  'product-owners', 'tech-leads', 'qa' gruplarını arar. Bu adlarda grup"
+  warn "  yoksa HER /approve \"üye değil\" diye reddedilir; kapı sonsuza dek"
+  warn "  bekler ve koşu takılmış görünür — hata vermez."
+  warn "  Kendi grup adlarınızı .env'de eşleyin, örnek:"
+  warn "    GATE_GROUPS=\"product-owners=jira-po-grubu,tech-leads=jira-lider-grubu\""
+  warn "  Tek onay grubu varsa:  GATE_GROUP_DEFAULT=\"maestro-onay\""
+  onay "Böyle devam edilsin mi (rol adları grup adı olarak kullanılsın)?" \
+    || die "GATE_GROUPS ya da GATE_GROUP_DEFAULT ayarlayıp tekrar çalıştırın."
+fi
+
+if [[ -n "${JIRA_DISCOVER_MS:-}" && "${JIRA_DISCOVER_MS:-0}" != "0" \
+      && -z "${JIRA_CLOUD_BASE_URL:-}" ]]; then
+  warn "JIRA_DISCOVER_MS dolu ama Jira CLOUD bağlantısı yok."
+  warn "  Ticket TARAMASI (JQL) yalnız Jira Cloud sürücüsünde vardır; Data Center"
+  warn "  kurulumunda tarama çalışmaz ve ticket'lar yalnız WEBHOOK ile gelir."
+  warn "  Data Center kullanıyorsanız webhook'u kurduğunuzdan emin olun."
+  onay "Böyle devam edilsin mi (tarama kapalı, yalnız webhook)?" \
+    || die "Jira Cloud bağlantısı tanımlayın ya da JIRA_DISCOVER_MS'i boşaltın."
 fi
 
 # LLM_BASE_URL sonunda /v1 → sürücü de ekler → /v1/v1 → her çağrı 404

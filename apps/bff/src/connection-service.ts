@@ -637,6 +637,23 @@ export async function runConnectionTest(
     return modelServedNote(models, record.config["model"]);
   }
 
+  /**
+   * A green key is not a green BALANCE.
+   *
+   * Measured live: an OpenRouter key whose credit had run out listed `/models`
+   * happily — the panel went green — and then every chat call came back 403
+   * "Key limit exceeded". The run reached step 2 and stopped, with a connection
+   * screen insisting the connection was fine. On an air-gapped bank install
+   * that gap is worse, because nobody can check the provider's dashboard.
+   *
+   * The probe is not changed to a real completion (see the reasoning above
+   * `/v1/models`); the VERDICT is made honest instead, so the operator knows
+   * what this green does and does not cover.
+   */
+  if (record.kind === "openrouter" || record.kind === "anthropic") {
+    return { ok: true, messageKey: "connections.test.key_ok_quota_unknown" };
+  }
+
   let identity: string | undefined;
   let accountId: string | undefined;
   if (probe.identity !== undefined || probe.accountId !== undefined) {
